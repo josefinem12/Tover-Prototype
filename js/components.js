@@ -20,6 +20,7 @@ export const NAV_ITEMS = [
   { key: 'rd', label: TEAMS.rd.label, icon: 'search' },
   { key: 'product', label: TEAMS.product.label, icon: 'world' },
   { key: 'commerce', label: TEAMS.commerce.label, icon: 'briefcase' },
+  { key: 'customers', label: TEAMS.customers.label, icon: 'home' },
   { key: 'ops', label: TEAMS.ops.label, icon: 'wrench' },
   { key: 'software', label: TEAMS.software.label, icon: 'terminal' },
 ];

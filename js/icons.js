@@ -35,6 +35,7 @@ export const ICONS = {
   briefcase: s('<rect x="3.5" y="7.5" width="17" height="11.5"/><path d="M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5M3.5 12.5h17"/>'),
   wrench: s('<path d="M14.7 6.3a4 4 0 0 0-5.4 4.7L4 16.3a1.8 1.8 0 0 0 2.5 2.5l5.3-5.3a4 4 0 0 0 4.7-5.4l-2.6 2.6-2-2 2.6-2.6Z"/>'),
   terminal: s('<rect x="3.5" y="4.5" width="17" height="15"/><path d="m7.5 9.5 3 3-3 3M12.5 15.5h4"/>'),
+  home: s('<path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9.5h12V10"/><path d="M10 19.5v-6h4v6"/>'),
 };
 
 export function icon(name, cls = '') {

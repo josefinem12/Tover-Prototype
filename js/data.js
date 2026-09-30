@@ -34,6 +34,7 @@ export const TEAMS = {
   commerce: { key: 'commerce', label: 'Commerce', color: 'var(--series-1)' },
   ops: { key: 'ops', label: 'Operations', color: 'var(--series-5)' },
   software: { key: 'software', label: 'Software', color: 'var(--series-6)' },
+  customers: { key: 'customers', label: 'Customers', color: 'var(--series-4)' },
 };
 
 export const COUNTRIES = [

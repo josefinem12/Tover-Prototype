@@ -19,8 +19,9 @@ import * as product from './teams/product.js';
 import * as commerce from './teams/commerce.js';
 import * as ops from './teams/ops.js';
 import * as software from './teams/software.js';
+import * as customers from './teams/customers.js';
 
-const TEAM_MODULES = { overview, rd, product, commerce, ops, software };
+const TEAM_MODULES = { overview, rd, product, commerce, ops, software, customers };
 
 const state = {
   team: 'overview',

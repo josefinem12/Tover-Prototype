@@ -291,15 +291,6 @@ function renderWrapped(state) {
         still need to be wired up before this is real. ${infoDot('Needs reliable long-term aggregates, customer/fleet grouping, game metadata and subscription information.')}
       </div>
     </div>
-
-    <div class="card">
-      <div class="flex items-center justify-between" style="margin-bottom:4px">
-        <div class="titles"><h3 style="font-size:13.5px;font-weight:700">Deep filtering</h3><div class="card-sub">R&amp;D specifically asked for filters across all of these dimensions</div></div>
-      </div>
-      <div class="flex gap-2" style="flex-wrap:wrap;margin-top:8px">
-        ${['Date', 'Game', 'Game category', 'Device', 'Customer / fleet', 'Country / region', 'Software version', 'Device type', 'Subscription'].map(f2 => `<span class="audience-chip">${esc(f2)}</span>`).join('')}
-      </div>
-    </div>
   `;
 
   return renderTeamPage(TABS, state, {

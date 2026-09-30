@@ -27,6 +27,16 @@ export const TABS = [
 
 function hashCode(str) { let h = 0; for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0; return Math.abs(h); }
 function gameForDevice(d) { return d.currentGame || GAMES[hashCode(d.id) % GAMES.length].name; }
+function deviceGame(d) { return GAMES.find(g => g.name === gameForDevice(d)); }
+function gameNameMatchesFilters(name, f) {
+  if (f.game === 'all' && f.category === 'all') return true;
+  const g = GAMES.find(x => x.name === name);
+  if (!g) return false;
+  if (f.game !== 'all' && g.id !== f.game) return false;
+  if (f.category !== 'all' && g.category !== f.category) return false;
+  return true;
+}
+function matchesGameFilters(d, f) { return gameNameMatchesFilters(gameForDevice(d), f); }
 function mapStatus(d) { if (d.isOffline) return 'offline'; if (d.lastSeenMinutes < 15) return 'now'; if (d.lastSeenMinutes < 180) return 'recent'; return 'offline'; }
 const STATUS_LABEL = { now: 'Active now', recent: 'Recently active', offline: 'Offline / not recently seen' };
 const FEED_META = {
@@ -40,7 +50,7 @@ function getFeed() { if (!feedCache) feedCache = generateLiveFeed(18); return fe
 
 function renderWorld(state) {
   const f = state.filters;
-  const filtered = applyDeviceFilters(DEVICES, f);
+  const filtered = applyDeviceFilters(DEVICES, f).filter(d => matchesGameFilters(d, f));
   const now = filtered.filter(d => mapStatus(d) === 'now');
   const recent = filtered.filter(d => mapStatus(d) === 'recent');
   const offline = filtered.filter(d => mapStatus(d) === 'offline');
@@ -49,7 +59,7 @@ function renderWorld(state) {
   const gameCounts = {};
   now.forEach(d => { const g = gameForDevice(d); gameCounts[g] = (gameCounts[g] || 0) + 1; });
   const topGames = Object.entries(gameCounts).map(([name, count]) => ({ label: name, value: count, color: 'var(--accent-yellow-deep)' })).sort((a, b) => b.value - a.value).slice(0, 7);
-  const feed = getFeed().filter(e => applyDeviceFilters([e.device], f).length > 0).slice(0, 10);
+  const feed = getFeed().filter(e => applyDeviceFilters([e.device], f).length > 0 && gameNameMatchesFilters(e.game, f)).slice(0, 10);
   const byCountry = COUNTRIES.map(c => ({ country: c.name, total: filtered.filter(d => d.countryCode === c.code).length })).filter(r => r.total > 0);
 
   const body = `
@@ -114,10 +124,14 @@ function renderWorld(state) {
     desc: 'Where the fleet is active right now, for design decisions and Customer Success.',
     sharedWith: 'Commerce (same map, partner-facing framing)',
     filtersHtml: `
+      ${filterSelect('category', 'Game category', [{ value: 'all', label: 'All categories' }, ...GAME_CATEGORIES.map(c => ({ value: c, label: c }))], f.category)}
+      ${filterSelect('game', 'Game', [{ value: 'all', label: 'All games' }, ...GAMES.map(g => ({ value: g.id, label: g.name }))], f.game)}
+      ${filterDivider()}
       ${filterSelect('country', 'Country / region', [{ value: 'all', label: 'All countries / regions' }, ...COUNTRIES.map(c => ({ value: c.code, label: c.name }))], f.country)}
       ${filterSelect('deviceType', 'Device type', [{ value: 'all', label: 'All device types' }, ...DEVICE_TYPES.map(d => ({ value: d, label: d }))], f.deviceType)}
       ${filterSelect('customer', 'Customer / fleet', [{ value: 'all', label: 'All customers / fleets' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
       ${filterSelect('version', 'Software version', [{ value: 'all', label: 'All versions' }, ...SOFTWARE_VERSIONS.map(v => ({ value: v, label: 'v' + v }))], f.version)}
+      ${filterSelect('subscription', 'Subscription', [{ value: 'all', label: 'All subscriptions' }, ...SUBSCRIPTIONS.map(s => ({ value: s, label: s }))], f.subscription)}
       ${filterResetButton()}
     `,
     bodyHtml: body,
@@ -125,7 +139,7 @@ function renderWorld(state) {
 }
 
 function mountWorld(root, state) {
-  const filtered = applyDeviceFilters(DEVICES, state.filters);
+  const filtered = applyDeviceFilters(DEVICES, state.filters).filter(d => matchesGameFilters(d, state.filters));
   const rows = COUNTRIES.map(c => {
     const devs = filtered.filter(d => d.countryCode === c.code);
     return { id: c.code, country: c.name, total: devs.length, now: devs.filter(d => mapStatus(d) === 'now').length, recent: devs.filter(d => mapStatus(d) === 'recent').length, offline: devs.filter(d => mapStatus(d) === 'offline').length };
@@ -151,9 +165,9 @@ function renderBehaviour(state) {
   const CAT_ICON = { Cognitive: 'chip', Physical: 'bolt', Sensory: 'hand', Social: 'world' };
   const tiles = GAME_CATEGORIES.map(c => ({ label: c, icon: CAT_ICON[c] })).concat([{ label: 'Shuffle a game', icon: 'bolt', span: 2, accent: true }]);
 
-  const assetItems = INTERACTION_STATS.filter(g => g.tpu && (f.category === 'all' || g.category === f.category)).sort((a, b) => b.avgHands - a.avgHands).slice(0, 8)
+  const assetItems = INTERACTION_STATS.filter(g => g.tpu && (f.category === 'all' || g.category === f.category) && (f.game === 'all' || g.id === f.game)).sort((a, b) => b.avgHands - a.avgHands).slice(0, 8)
     .map(g => ({ label: g.name, value: g.avgHands, color: 'var(--series-2)' }));
-  const effortItems = INTERACTION_STATS.filter(g => f.category === 'all' || g.category === f.category).sort((a, b) => b.effort - a.effort).slice(0, 8)
+  const effortItems = INTERACTION_STATS.filter(g => (f.category === 'all' || g.category === f.category) && (f.game === 'all' || g.id === f.game)).sort((a, b) => b.effort - a.effort).slice(0, 8)
     .map(g => ({ label: g.name, value: g.effort, color: 'var(--series-5)' }));
 
   const body = `
@@ -197,6 +211,7 @@ function renderBehaviour(state) {
     sharedWith: 'Research & Design (interaction concepts) and Commerce (adoption framing)',
     filtersHtml: `
       ${filterSelect('category', 'Category', [{ value: 'all', label: 'All categories' }, ...GAME_CATEGORIES.map(c => ({ value: c, label: c }))], f.category)}
+      ${filterSelect('game', 'Game', [{ value: 'all', label: 'All games' }, ...GAMES.map(g => ({ value: g.id, label: g.name }))], f.game)}
       ${filterResetButton()}
     `,
     bodyHtml: body,
@@ -224,7 +239,7 @@ function healthTile(label, count, statusKey, tooltip) {
 
 function renderHealth(state) {
   const f = state.filters;
-  const filtered = applyDeviceFilters(DEVICES, f);
+  const filtered = applyDeviceFilters(DEVICES, f).filter(d => matchesGameFilters(d, f));
   const tech = {
     healthy: filtered.filter(d => d.technicalHealth === 'healthy').length,
     attention: filtered.filter(d => d.technicalHealth === 'attention').length,
@@ -281,6 +296,9 @@ function renderHealth(state) {
     desc: 'Technical condition and actual usage, tracked separately - a device can be fully healthy and simply unused.',
     sharedWith: 'Operations (deeper diagnostic detail) and Commerce (simplified reliability view)',
     filtersHtml: `
+      ${filterSelect('category', 'Game category', [{ value: 'all', label: 'All categories' }, ...GAME_CATEGORIES.map(c => ({ value: c, label: c }))], f.category)}
+      ${filterSelect('game', 'Game', [{ value: 'all', label: 'All games' }, ...GAMES.map(g => ({ value: g.id, label: g.name }))], f.game)}
+      ${filterDivider()}
       ${filterSelect('customer', 'Customer / fleet', [{ value: 'all', label: 'All customers / fleets' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
       ${filterSelect('country', 'Country', [{ value: 'all', label: 'All countries' }, ...COUNTRIES.map(c => ({ value: c.code, label: c.name }))], f.country)}
       ${filterSelect('deviceType', 'Device type', [{ value: 'all', label: 'All device types' }, ...DEVICE_TYPES.map(d => ({ value: d, label: d }))], f.deviceType)}
@@ -293,7 +311,7 @@ function renderHealth(state) {
 }
 
 function mountHealth(root, state) {
-  const filtered = applyDeviceFilters(DEVICES, state.filters);
+  const filtered = applyDeviceFilters(DEVICES, state.filters).filter(d => matchesGameFilters(d, state.filters));
   mountDataTable(root, 'devices', {
     rows: filtered, rowKey: 'id', searchFields: ['serial', 'customer', 'country', 'softwareVersion'], searchPlaceholder: 'Search serial, customer, country…',
     defaultSort: { col: 'technicalHealth', dir: 'asc' },

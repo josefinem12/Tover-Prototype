@@ -43,18 +43,9 @@ function renderTelemetry(state) {
       </div>
     </div>
 
-    <div class="grid grid-12">
-      <div class="card span-7">
-        ${cardHead('Storage / data-volume trend', 'To judge whether new tracking requests are scalable', availPill('mock'))}
-        ${lineAreaChart({ labels: volumeGB.map(r => r.date), values: volumeGB.map(r => r.gb), color: 'var(--series-6)', fillColor: 'var(--series-6)', formatLabel: (d) => fmtDate(d), formatValue: (v) => v.toFixed(1) + ' GB' })}
-      </div>
-      <div class="card span-5">
-        <div class="flex items-center justify-between" style="margin-bottom:4px">
-          <div class="titles"><h3 style="font-size:13.5px;font-weight:700">Devices with unusual logging</h3><div class="card-sub">Sudden stop, or a burst that doesn’t match usage</div></div>
-          ${availPill('new-tracking')}
-        </div>
-        <div class="helper-text" style="line-height:1.7">See Operations → Data Reliability Monitor for the live list of flagged devices; this is the same underlying signal, surfaced there with drill-down.</div>
-      </div>
+    <div class="card">
+      ${cardHead('Storage / data-volume trend', 'To judge whether new tracking requests are scalable', availPill('mock'))}
+      ${lineAreaChart({ labels: volumeGB.map(r => r.date), values: volumeGB.map(r => r.gb), color: 'var(--series-6)', fillColor: 'var(--series-6)', formatLabel: (d) => fmtDate(d), formatValue: (v) => v.toFixed(1) + ' GB' })}
     </div>
   `;
 
