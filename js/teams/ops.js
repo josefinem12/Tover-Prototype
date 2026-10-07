@@ -1,6 +1,6 @@
 // =========================================================================
 // Operations - Dashboard A (Device Health Monitor), Dashboard B (Predictive
-// / Fleet Pattern Explorer), Dashboard C (Data Reliability Monitor)
+// / Fleet Pattern Explorer)
 // =========================================================================
 
 import { esc, fmtNum, fmtMinutes, fmtCompact, fmtDate, timeAgo } from '../utils.js';
@@ -12,18 +12,14 @@ import { hBarChart, vBarChart, lineAreaChart, donutChart, sparkline, SERIES_COLO
 import {
   DEVICES, CUSTOMERS, COUNTRIES, SOFTWARE_VERSIONS, DEVICE_TYPES, PBIT_COMPONENTS,
   PBIT_FLEET_STATS, REMOTE_ACTIONS, RECURRING_ISSUES, FAILURE_BY_BATCH, FAILURE_BY_REVISION,
-  FAILURE_BY_DISTRIBUTOR, ERRORS_BY_VERSION, ERROR_TIMELINE, EVENT_VOLUME, DQ_ISSUE_TYPES, generateDqIssues,
+  FAILURE_BY_DISTRIBUTOR, ERRORS_BY_VERSION, ERROR_TIMELINE,
 } from '../data.js';
 import { applyDeviceFilters } from '../filters.js';
 
 export const TABS = [
   { key: 'monitor', label: 'Device Health Monitor' },
   { key: 'patterns', label: 'Fleet Pattern Explorer' },
-  { key: 'reliability', label: 'Data Reliability Monitor' },
 ];
-
-let issuesCache = null;
-function getIssues() { if (!issuesCache) issuesCache = generateDqIssues(34); return issuesCache; }
 
 const LATEST_VERSION = SOFTWARE_VERSIONS[0];
 function pbitOverall(device) {
@@ -210,84 +206,12 @@ function renderPatterns(state) {
 }
 
 // -------------------------------------------------------------------------
-// Data Reliability Monitor
-// -------------------------------------------------------------------------
-
-function renderReliability(state) {
-  const issues = getIssues();
-  const missingEnd = issues.filter(i => i.type === 'Missing GAME_END').length;
-  const invalidSessions = issues.filter(i => i.type === 'Negative duration' || i.type === 'Extreme duration (>4h)').length;
-  const stoppedLogging = issues.filter(i => i.type === 'Stopped logging suddenly').length;
-  const issueDonutData = DQ_ISSUE_TYPES.map((t, i) => ({ label: t.label, value: issues.filter(x => x.type === t.label).length, color: SERIES_COLORS[i % SERIES_COLORS.length] })).filter(d => d.value > 0);
-
-  const body = `
-    <div class="grid grid-kpi">
-      ${kpiCard({ label: 'Missing GAME_END pairs', value: fmtNum(missingEnd) })}
-      ${kpiCard({ label: 'Invalid sessions', value: fmtNum(invalidSessions), sub: 'negative or extreme duration' })}
-      ${kpiCard({ label: 'Devices stopped logging', value: fmtNum(stoppedLogging), sub: 'unexpected silence' })}
-      ${kpiCard({ label: 'Events received (30d)', value: fmtCompact(EVENT_VOLUME.reduce((s, r) => s + r.events, 0)) })}
-    </div>
-
-    <div class="grid grid-12">
-      <div class="card span-7">
-        ${cardHead('Event volume by device / software version', 'Ingested events per day, last 30 days', availPill('available'))}
-        ${lineAreaChart({ labels: EVENT_VOLUME.map(r => r.date), values: EVENT_VOLUME.map(r => r.events), color: 'var(--accent-yellow-deep)', fillColor: 'var(--accent-yellow)', formatLabel: (d) => fmtDate(d), formatValue: (v) => fmtCompact(v) + ' events' })}
-      </div>
-      <div class="card span-5">
-        ${cardHead('Issues by type', `${fmtNum(issues.length)} flagged in the sampled window`, availPill('mock'))}
-        ${donutChart({ items: issueDonutData })}
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="flex items-center justify-between" style="margin-bottom:4px">
-        <div class="titles"><h3 style="font-size:13.5px;font-weight:700">Needs investigation</h3><div class="card-sub">Missing GAME_START/END pairs, missing IDs, negative/extreme durations, placeholder values - click a row to open the device</div></div>
-        <div class="flex gap-2">${availPill('mock')}${availPill('new-tracking')}</div>
-      </div>
-      <div data-table-mount="issues"></div>
-    </div>
-
-    <div class="card" style="background:var(--surface-sunken)">
-      <h3 style="font-size:12.5px;font-weight:700">A useful validation step</h3>
-      <div class="helper-text mt-2" style="line-height:1.6">Comparing known physical test sessions on an office Tovertafel against what actually appears in the backend is a concrete way to sanity-check this page before trusting it fleet-wide.</div>
-    </div>
-  `;
-
-  return renderTeamPage(TABS, state, {
-    eyebrow: 'Operations · Dashboard C',
-    title: 'Data Reliability Monitor',
-    desc: 'Whether the dataset itself can be trusted, and why information might be missing.',
-    sharedWith: 'Software (same reliability checks, ingestion-pipeline framing)',
-    filtersHtml: filterResetButton(),
-    bodyHtml: body,
-  });
-}
-
-function mountReliability(root, state) {
-  const issues = getIssues();
-  mountDataTable(root, 'issues', {
-    rows: issues, rowKey: 'id', searchFields: ['type'], searchPlaceholder: 'Search issue type…', defaultSort: { col: 'detectedAt', dir: 'desc' },
-    onRowClick: (id) => { const issue = issues.find(i => i.id === id); if (issue) document.dispatchEvent(new CustomEvent('app:selectDevice', { detail: { id: issue.device.id } })); },
-    columns: [
-      { key: 'type', label: 'Issue type' },
-      { key: 'sev', label: 'Severity', sortValue: (r) => ({ critical: 2, action: 1, attention: 0 })[r.sev], render: (r) => statusBadge(r.sev === 'action' ? 'action' : r.sev === 'critical' ? 'critical' : 'warning', r.sev === 'critical' ? 'Critical' : r.sev === 'action' ? 'Action needed' : 'Attention') },
-      { key: 'serial', label: 'Device', sortValue: (r) => r.device.serial, render: (r) => `<span class="mono">${esc(r.device.serial)}</span>` },
-      { key: 'customer', label: 'Customer / fleet', sortValue: (r) => r.device.customer, render: (r) => esc(r.device.customer) },
-      { key: 'detail', label: 'Detail', render: (r) => `<span class="text-secondary">${esc(r.detail)}</span>` },
-      { key: 'detectedAt', label: 'Detected', align: 'right', render: (r) => timeAgo(r.detectedAt) },
-    ],
-  });
-}
-
-// -------------------------------------------------------------------------
 
 export function render(state) {
   if (state.subtab === 'patterns') return renderPatterns(state);
-  if (state.subtab === 'reliability') return renderReliability(state);
   return renderMonitor(state);
 }
 
 export function mount(root, state) {
-  if (state.subtab === 'reliability') mountReliability(root, state);
-  else if (state.subtab === 'monitor' || !state.subtab) mountMonitor(root, state);
+  if (state.subtab === 'monitor' || !state.subtab) mountMonitor(root, state);
 }

@@ -203,11 +203,6 @@ function renderHighlights(state) {
       </div>
     </div>
 
-    <div class="card">
-      <h3 style="font-size:13.5px;font-weight:700">Why these numbers</h3>
-      <div class="card-sub" style="margin-top:2px">Every metric above already matters to one of our internal teams - this page just puts them in one place for you</div>
-      <div class="helper-text mt-3" style="line-height:1.7">Game and category popularity come from Research &amp; Design's own usage explorer. Handpicked rate is the same audited figure R&amp;D tracks to understand deliberate vs. shuffled play. Fleet uptime is the same reliability number Commerce and Operations report on internally. Nothing here is calculated differently for this view - it's the same underlying signal, just framed for you instead of for us.</div>
-    </div>
   `;
 
   return renderTeamPage(TABS, state, {

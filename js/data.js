@@ -66,54 +66,54 @@ export const GAME_CATEGORIES = ['Cognitive', 'Physical', 'Sensory', 'Social'];
 // full multi-tag list. `weight` derives from real tier/package-appearance
 // counts, so popularity ranking reflects actual catalogue reach, not a guess.
 export const GAMES = [
-  { id: 'g_birthday_cake', name: 'Birthday Cake', categories: ['Sensory', 'Social'], category: 'Sensory', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: true, weight: 15, mostPreferred: true, leastPreferred: false, highContrast: false },
-  { id: 'g_flying_saucer', name: 'Flying Saucer', categories: ['Physical', 'Social'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: false, weight: 11, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_bubble_bath', name: 'Bubble Bath', categories: ['Physical', 'Sensory'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: false, weight: 11, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_birthday_cake', name: 'Birthday Cake', categories: ['Sensory', 'Social'], category: 'Sensory', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 15, mostPreferred: true, leastPreferred: false, highContrast: false },
+  { id: 'g_flying_saucer', name: 'Flying Saucer', categories: ['Physical', 'Social'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 11, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_bubble_bath', name: 'Bubble Bath', categories: ['Physical', 'Sensory'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 11, mostPreferred: false, leastPreferred: false, highContrast: false },
   { id: 'g_dream_stars', name: 'Dream Stars', categories: ['Sensory'], category: 'Sensory', level: 1, platforms: ['Pixie'], type: 'ambient', tpu: false, weight: 10, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_hamster_maze', name: 'Hamster Maze', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 5, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 10, mostPreferred: true, leastPreferred: false, highContrast: false },
-  { id: 'g_monster_pairs', name: 'Monster Pairs', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: true, weight: 10, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_rainbow', name: 'Rainbow', categories: ['Physical', 'Sensory'], category: 'Physical', level: 2, platforms: ['Tovertafel'], type: 'active', tpu: false, weight: 10, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_soccer_match', name: 'Soccer Match', categories: ['Physical', 'Social'], category: 'Physical', level: 4, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: false, weight: 10, mostPreferred: true, leastPreferred: false, highContrast: true },
-  { id: 'g_butterflies', name: 'Butterflies', categories: ['Physical', 'Sensory'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: false, weight: 9, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_ladybirds', name: 'Ladybirds', categories: ['Physical', 'Sensory'], category: 'Physical', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: false, weight: 9, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_hamster_maze', name: 'Hamster Maze', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 5, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 10, mostPreferred: true, leastPreferred: false, highContrast: false },
+  { id: 'g_monster_pairs', name: 'Monster Pairs', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 10, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_rainbow', name: 'Rainbow', categories: ['Physical', 'Sensory'], category: 'Physical', level: 2, platforms: ['Tovertafel'], type: 'ambient', tpu: false, weight: 10, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_soccer_match', name: 'Soccer Match', categories: ['Physical', 'Social'], category: 'Physical', level: 4, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 10, mostPreferred: true, leastPreferred: false, highContrast: true },
+  { id: 'g_butterflies', name: 'Butterflies', categories: ['Physical', 'Sensory'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 9, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_ladybirds', name: 'Ladybirds', categories: ['Physical', 'Sensory'], category: 'Physical', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 9, mostPreferred: false, leastPreferred: false, highContrast: false },
   { id: 'g_fish', name: 'Fish', categories: ['Sensory', 'Social'], category: 'Sensory', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 8, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_seasonal_memo', name: 'Seasonal Memo', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 5, platforms: ['Tovertafel'], type: 'ambient', tpu: true, weight: 8, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_seasonal_memo', name: 'Seasonal Memo', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 5, platforms: ['Tovertafel'], type: 'active', tpu: true, weight: 8, mostPreferred: false, leastPreferred: false, highContrast: false },
   { id: 'g_animal_sounds', name: 'Animal Sounds', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 4, platforms: ['Tovertafel'], type: 'ambient', tpu: false, weight: 8, mostPreferred: false, leastPreferred: false, highContrast: false },
   { id: 'g_hobby_sets', name: 'Hobby Sets', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 4, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 8, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_paint_splatters', name: 'Paint Splatters', categories: ['Physical', 'Sensory'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: false, weight: 8, mostPreferred: true, leastPreferred: false, highContrast: true },
+  { id: 'g_paint_splatters', name: 'Paint Splatters', categories: ['Physical', 'Sensory'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 8, mostPreferred: true, leastPreferred: false, highContrast: true },
   { id: 'g_windmills', name: 'Windmills', categories: ['Physical', 'Social'], category: 'Physical', level: 3, platforms: ['Tovertafel'], type: 'active', tpu: true, weight: 8, mostPreferred: true, leastPreferred: false, highContrast: false },
-  { id: 'g_wordsmith', name: 'Wordsmith', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 4, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 8, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_molehunt', name: 'Molehunt', categories: ['Cognitive', 'Physical', 'Social'], category: 'Cognitive', level: 4, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: false, weight: 7, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_wordsmith', name: 'Wordsmith', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 4, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 8, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_molehunt', name: 'Molehunt', categories: ['Cognitive', 'Physical', 'Social'], category: 'Cognitive', level: 4, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 7, mostPreferred: false, leastPreferred: false, highContrast: false },
   { id: 'g_music_box', name: 'Music Box', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 7, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_safe_cracker', name: 'Safe Cracker', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 5, platforms: ['Tovertafel'], type: 'ambient', tpu: true, weight: 7, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_sheet_music', name: 'Sheet Music', categories: ['Physical', 'Sensory'], category: 'Physical', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: false, weight: 7, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_match_maker', name: 'Match Maker', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 4, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 7, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_safe_cracker', name: 'Safe Cracker', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 5, platforms: ['Tovertafel'], type: 'active', tpu: true, weight: 7, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_sheet_music', name: 'Sheet Music', categories: ['Physical', 'Sensory'], category: 'Physical', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 7, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_match_maker', name: 'Match Maker', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 4, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 7, mostPreferred: false, leastPreferred: false, highContrast: false },
   { id: 'g_balloon', name: 'Balloon', categories: ['Physical', 'Social'], category: 'Physical', level: 4, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 6, mostPreferred: false, leastPreferred: false, highContrast: false },
   { id: 'g_lava_bubbles', name: 'Lava Bubbles', categories: ['Sensory'], category: 'Sensory', level: 1, platforms: ['Pixie'], type: 'ambient', tpu: false, weight: 6, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_sandy_beach', name: 'Sandy Beach', categories: ['Physical', 'Sensory'], category: 'Physical', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: false, weight: 6, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_animal_pairs', name: 'Animal Pairs', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 6, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_sandy_beach', name: 'Sandy Beach', categories: ['Physical', 'Sensory'], category: 'Physical', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 6, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_animal_pairs', name: 'Animal Pairs', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 6, mostPreferred: false, leastPreferred: false, highContrast: false },
   { id: 'g_candy_fish', name: 'Candy Fish', categories: ['Physical', 'Social'], category: 'Physical', level: 4, platforms: ['Tovertafel'], type: 'active', tpu: true, weight: 6, mostPreferred: true, leastPreferred: false, highContrast: false },
   { id: 'g_masterpieces', name: 'Masterpieces', categories: ['Physical', 'Sensory'], category: 'Physical', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 6, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_movement_dice', name: 'Movement Dice', categories: ['Physical', 'Social'], category: 'Physical', level: 3, platforms: ['Tovertafel'], type: 'active', tpu: false, weight: 6, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_pond', name: 'Pond', categories: ['Physical', 'Sensory'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 6, mostPreferred: false, leastPreferred: false, highContrast: true },
-  { id: 'g_steam_train', name: 'Steam Train', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: true, weight: 6, mostPreferred: true, leastPreferred: false, highContrast: false },
-  { id: 'g_coral_reef', name: 'Coral Reef', categories: ['Physical', 'Sensory', 'Social'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 5, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_transport_puzzle', name: 'Transport puzzle', categories: ['Social'], category: 'Social', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: true, weight: 5, mostPreferred: false, leastPreferred: false, highContrast: true },
-  { id: 'g_beach_ball', name: 'Beach Ball', categories: ['Physical', 'Social'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: false, weight: 5, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_movement_dice', name: 'Movement Dice', categories: ['Physical', 'Social'], category: 'Physical', level: 3, platforms: ['Tovertafel'], type: 'active', tpu: true, weight: 6, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_pond', name: 'Pond', categories: ['Physical', 'Sensory'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 6, mostPreferred: false, leastPreferred: false, highContrast: true },
+  { id: 'g_steam_train', name: 'Steam Train', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 6, mostPreferred: true, leastPreferred: false, highContrast: false },
+  { id: 'g_coral_reef', name: 'Coral Reef', categories: ['Physical', 'Sensory', 'Social'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 5, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_transport_puzzle', name: 'Transport puzzle', categories: ['Social'], category: 'Social', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 5, mostPreferred: false, leastPreferred: false, highContrast: true },
+  { id: 'g_beach_ball', name: 'Beach Ball', categories: ['Physical', 'Social'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 5, mostPreferred: false, leastPreferred: false, highContrast: false },
   { id: 'g_chatterboxes', name: 'Chatterboxes', categories: ['Cognitive', 'Physical', 'Social'], category: 'Cognitive', level: 3, platforms: ['Pixie'], type: 'active', tpu: true, weight: 5, mostPreferred: false, leastPreferred: false, highContrast: false },
   { id: 'g_cloudy_sky', name: 'Cloudy Sky', categories: ['Sensory'], category: 'Sensory', level: 1, platforms: ['Pixie'], type: 'ambient', tpu: false, weight: 5, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_leaves', name: 'Leaves', categories: ['Physical', 'Sensory'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 5, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_leaves', name: 'Leaves', categories: ['Physical', 'Sensory'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 5, mostPreferred: false, leastPreferred: false, highContrast: false },
   { id: 'g_moles', name: 'Moles', categories: ['Physical', 'Social'], category: 'Physical', level: 4, platforms: ['Tovertafel'], type: 'active', tpu: true, weight: 5, mostPreferred: true, leastPreferred: false, highContrast: true },
-  { id: 'g_nostalgia_puzzle', name: 'Nostalgia Puzzle', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: true, weight: 5, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_nostalgia_puzzle', name: 'Nostalgia Puzzle', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 5, mostPreferred: false, leastPreferred: false, highContrast: false },
   { id: 'g_puppies', name: 'Puppies', categories: ['Sensory', 'Social'], category: 'Sensory', level: 3, platforms: ['Tovertafel'], type: 'ambient', tpu: false, weight: 5, mostPreferred: false, leastPreferred: false, highContrast: true },
-  { id: 'g_evening_lights', name: 'Evening Lights', categories: ['Physical', 'Sensory'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: false, weight: 4, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_marbles', name: 'Marbles', categories: ['Physical', 'Social'], category: 'Physical', level: 4, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: false, weight: 4, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_animal_puzzle', name: 'Animal Puzzle', categories: ['Social'], category: 'Social', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: true, weight: 4, mostPreferred: false, leastPreferred: false, highContrast: true },
-  { id: 'g_baby_monsters', name: 'Baby Monsters', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 5, platforms: ['Tovertafel'], type: 'ambient', tpu: true, weight: 4, mostPreferred: true, leastPreferred: false, highContrast: false },
+  { id: 'g_evening_lights', name: 'Evening Lights', categories: ['Physical', 'Sensory'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 4, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_marbles', name: 'Marbles', categories: ['Physical', 'Social'], category: 'Physical', level: 4, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 4, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_animal_puzzle', name: 'Animal Puzzle', categories: ['Social'], category: 'Social', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 4, mostPreferred: false, leastPreferred: false, highContrast: true },
+  { id: 'g_baby_monsters', name: 'Baby Monsters', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 5, platforms: ['Tovertafel'], type: 'active', tpu: true, weight: 4, mostPreferred: true, leastPreferred: false, highContrast: false },
   { id: 'g_colored_lens', name: 'Colored Lens', categories: ['Sensory'], category: 'Sensory', level: 1, platforms: ['Pixie'], type: 'ambient', tpu: false, weight: 4, mostPreferred: false, leastPreferred: false, highContrast: false },
   { id: 'g_constellations', name: 'Constellations', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 3, platforms: ['Tovertafel'], type: 'ambient', tpu: false, weight: 4, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_instrument_pairs', name: 'Instrument Pairs', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 4, mostPreferred: false, leastPreferred: false, highContrast: false },
-  { id: 'g_rocket_sums', name: 'Rocket Sums', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 5, platforms: ['Tovertafel'], type: 'ambient', tpu: false, weight: 4, mostPreferred: false, leastPreferred: true, highContrast: false },
+  { id: 'g_instrument_pairs', name: 'Instrument Pairs', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 4, mostPreferred: false, leastPreferred: false, highContrast: false },
+  { id: 'g_rocket_sums', name: 'Rocket Sums', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 5, platforms: ['Tovertafel'], type: 'active', tpu: true, weight: 4, mostPreferred: false, leastPreferred: true, highContrast: false },
 ];
 
 export const CUSTOMERS = [
@@ -334,16 +334,36 @@ export const CATEGORY_STATS = GAME_CATEGORIES.map(cat => {
 // score low on motion without that meaning low engagement.
 // -------------------------------------------------------------------------
 
+// Effort is only scored for active games, and is derived from hands: average
+// concurrent hands relative to a 4-hand reference, capped at 100. Ambient
+// games get no effort score (their value is not in how much people move).
+export const EFFORT_REFERENCE_HANDS = 4;
+
 export const INTERACTION_STATS = GAMES.map(g => {
   const motion = g.type === 'active'
     ? clamp(Math.round(randFloat(rng, 45, 92, 0)), 0, 100)
     : clamp(Math.round(randFloat(rng, 5, 30, 0)), 0, 100);
-  const avgHands = g.tpu ? Number(randFloat(rng, 1.1, 3.2, 1)) : null;
-  const effort = g.type === 'active'
-    ? clamp(Math.round(randFloat(rng, 40, 95, 0)), 0, 100)
-    : clamp(Math.round(randFloat(rng, 10, 45, 0)), 0, 100);
-  return { ...g, motion, avgHands, effort };
+  const avgHands = g.tpu ? Number(randFloat(rng, 1.2, 2.6, 1)) + (g.level - 2) * 0.25 : null;
+  const effort = g.type === 'active' && avgHands !== null
+    ? clamp(Math.round((avgHands / EFFORT_REFERENCE_HANDS) * 100), 0, 100)
+    : null;
+  return { ...g, motion, avgHands: avgHands === null ? null : Number(avgHands.toFixed(1)), effort };
 });
+
+export function levelEffort(stats = INTERACTION_STATS) {
+  return [2, 3, 4, 5].map(level => {
+    const inLevel = stats.filter(g => g.level === level);
+    const active = inLevel.filter(g => g.type === 'active');
+    return {
+      level,
+      games: inLevel.length,
+      activeGames: active.length,
+      ambientGames: inLevel.length - active.length,
+      avgHands: active.length ? active.reduce((s, g) => s + g.avgHands, 0) / active.length : null,
+      effort: active.length ? Math.round(active.reduce((s, g) => s + g.effort, 0) / active.length) : null,
+    };
+  });
+}
 
 // -------------------------------------------------------------------------
 // Game selection journey / funnel
@@ -405,49 +425,6 @@ export function topGamesRightNow(r = rng) {
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 8);
-}
-
-// -------------------------------------------------------------------------
-// Data quality / diagnostics
-// -------------------------------------------------------------------------
-
-export const DQ_ISSUE_TYPES = [
-  { key: 'missing_end', label: 'Missing GAME_END', sev: 'action' },
-  { key: 'missing_id', label: 'Missing Game ID', sev: 'attention' },
-  { key: 'negative_duration', label: 'Negative duration', sev: 'critical' },
-  { key: 'extreme_duration', label: 'Extreme duration (>4h)', sev: 'attention' },
-  { key: 'placeholder_value', label: 'Placeholder / mixed-type value', sev: 'attention' },
-  { key: 'stopped_logging', label: 'Stopped logging suddenly', sev: 'critical' },
-];
-
-export function generateDqIssues(n = 26) {
-  const r = makeRng(4471);
-  const out = [];
-  for (let i = 0; i < n; i++) {
-    const type = pick(r, DQ_ISSUE_TYPES);
-    const device = pick(r, DEVICES);
-    out.push({
-      id: `dq${i}`,
-      type: type.label,
-      sev: type.sev,
-      device,
-      detectedAt: minutesAgo(randInt(r, 5, 60 * 24 * 6)),
-      detail: dqDetail(type.key, r),
-    });
-  }
-  return out.sort((a, b) => b.detectedAt - a.detectedAt);
-}
-
-function dqDetail(key, r) {
-  switch (key) {
-    case 'missing_end': return `GAME_START logged, no matching GAME_END within session window`;
-    case 'missing_id': return `Session recorded with empty game_id field`;
-    case 'negative_duration': return `Reconstructed duration: ${randInt(r, -240, -1)}s`;
-    case 'extreme_duration': return `Reconstructed duration: ${randFloat(r, 4.2, 11, 1)}h`;
-    case 'placeholder_value': return `Field contains literal "undefined" / "null" string`;
-    case 'stopped_logging': return `No events received for ${randInt(r, 4, 21)} days after regular reporting`;
-    default: return '';
-  }
 }
 
 // Baseline derived from the usage-data audit: 827,500 events across 1,291

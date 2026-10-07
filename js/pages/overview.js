@@ -1,7 +1,7 @@
 import { esc, fmtNum, fmtCompact, fmtPct } from '../utils.js';
 import { renderPageHeader, availPill, kpiCard } from '../components.js';
 import { icon } from '../icons.js';
-import { TEAMS, DATA_STATUS, USAGE_TIMESERIES, GAME_STATS, DEVICES, EVENT_VOLUME, UPTIME_TREND, CUSTOMER_VALUE, currentlyActiveDevices, generateDqIssues } from '../data.js';
+import { TEAMS, DATA_STATUS, USAGE_TIMESERIES, GAME_STATS, DEVICES, EVENT_VOLUME, UPTIME_TREND, CUSTOMER_VALUE, currentlyActiveDevices } from '../data.js';
 import { TABS as RD_TABS } from '../teams/rd.js';
 import { TABS as PRODUCT_TABS } from '../teams/product.js';
 import { TABS as COMMERCE_TABS } from '../teams/commerce.js';

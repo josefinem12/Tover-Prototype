@@ -6,7 +6,7 @@ import { esc, fmtNum, fmtMinutes, fmtDateTime, timeAgo } from './utils.js';
 import { icon, flapMark } from './icons.js';
 import { statusBadge, availPill, infoDot } from './components.js';
 import { sparkline } from './charts.js';
-import { PBIT_COMPONENTS, PBIT_CHECK_DESC, generateDqIssues } from './data.js';
+import { PBIT_COMPONENTS, PBIT_CHECK_DESC } from './data.js';
 
 const PBIT_ICON = {
   'Projector': 'projector', 'Daughter Board': 'board', 'IR Remote Sensor': 'wifi', 'IR Emitter': 'bolt',

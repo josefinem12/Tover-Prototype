@@ -53,7 +53,6 @@ function renderTelemetry(state) {
     eyebrow: 'Software · Telemetry & Data Quality',
     title: 'Telemetry & Ingestion',
     desc: 'What’s technically possible, scalable and maintainable - not a separate business dashboard.',
-    sharedWith: 'Operations (same reliability checks, fleet-operations framing)',
     filtersHtml: filterResetButton(),
     bodyHtml: body,
   });

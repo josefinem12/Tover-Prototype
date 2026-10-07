@@ -8,10 +8,11 @@ import {
   renderTeamPage, filterSelect, filterDivider, filterResetButton, kpiCard,
   cardHead, availPill, infoDot, statusBadge, mountDataTable, renderFunnel, renderHeatmapMock,
 } from '../components.js';
-import { worldMapSvg, hBarChart, sparkline, SERIES_COLORS } from '../charts.js';
+import { worldMapSvg, hBarChart, vBarChart, sparkline, SERIES_COLORS } from '../charts.js';
 import {
   DEVICES, COUNTRIES, CUSTOMERS, SOFTWARE_VERSIONS, DEVICE_TYPES, SUBSCRIPTIONS,
   GAMES, GAME_CATEGORIES, generateLiveFeed, SELECTION_FUNNEL, INTERACTION_STATS,
+  EFFORT_REFERENCE_HANDS, levelEffort,
 } from '../data.js';
 import { applyDeviceFilters } from '../filters.js';
 
@@ -165,10 +166,27 @@ function renderBehaviour(state) {
   const CAT_ICON = { Cognitive: 'chip', Physical: 'bolt', Sensory: 'hand', Social: 'world' };
   const tiles = GAME_CATEGORIES.map(c => ({ label: c, icon: CAT_ICON[c] })).concat([{ label: 'Shuffle a game', icon: 'bolt', span: 2, accent: true }]);
 
-  const assetItems = INTERACTION_STATS.filter(g => g.tpu && (f.category === 'all' || g.category === f.category) && (f.game === 'all' || g.id === f.game)).sort((a, b) => b.avgHands - a.avgHands).slice(0, 8)
+  const scoped = INTERACTION_STATS.filter(g => (f.category === 'all' || g.category === f.category) && (f.game === 'all' || g.id === f.game));
+  const activeScoped = scoped.filter(g => g.type === 'active');
+  const ambientCount = scoped.length - activeScoped.length;
+  const assetItems = activeScoped.filter(g => g.tpu).sort((a, b) => b.avgHands - a.avgHands).slice(0, 8)
     .map(g => ({ label: g.name, value: g.avgHands, color: 'var(--series-2)' }));
-  const effortItems = INTERACTION_STATS.filter(g => (f.category === 'all' || g.category === f.category) && (f.game === 'all' || g.id === f.game)).sort((a, b) => b.effort - a.effort).slice(0, 8)
-    .map(g => ({ label: g.name, value: g.effort, color: 'var(--series-5)' }));
+  const effortItems = [...activeScoped].sort((a, b) => b.effort - a.effort).slice(0, 8)
+    .map(g => ({ label: g.name, value: g.effort, color: 'var(--series-5)', sub: 'Level ' + g.level }));
+
+  const levels = levelEffort(scoped);
+  const scoredLevels = levels.filter(l => l.effort !== null);
+  const topLevel = scoredLevels.length ? scoredLevels.reduce((a, b) => (b.effort > a.effort ? b : a)) : null;
+  const levelBars = levels.map(l => ({ label: 'Level ' + l.level, value: l.effort || 0, color: topLevel && l.level === topLevel.level ? 'var(--accent-yellow-deep)' : 'var(--series-5)' }));
+  const levelRows = levels.map(l => `
+    <tr>
+      <td>Level ${l.level}</td>
+      <td class="num">${fmtNum(l.games)}</td>
+      <td class="num">${fmtNum(l.activeGames)}</td>
+      <td class="num">${fmtNum(l.ambientGames)}</td>
+      <td class="num">${l.avgHands === null ? '-' : l.avgHands.toFixed(1)}</td>
+      <td class="num">${l.effort === null ? '-' : l.effort + '/100'}</td>
+    </tr>`).join('');
 
   const body = `
     <div class="grid grid-12">
@@ -198,8 +216,26 @@ function renderBehaviour(state) {
         <div class="helper-text mt-3">TPU can identify individual hands only in TPU-enabled games - this is not a general analytics field yet.</div>
       </div>
       <div class="card span-6">
-        ${cardHead('Player effort by game', 'Could later feed design recommendations', availPill('definition'))}
-        ${hBarChart({ items: effortItems, formatValue: (v) => v + '/100' })}
+        ${cardHead('Player effort by game', 'Active games only, scored from average hands', availPill('definition'))}
+        ${effortItems.length ? hBarChart({ items: effortItems, formatValue: (v) => v + '/100' }) : `<div class="empty-state">No active games in this filter.</div>`}
+        <div class="helper-text mt-3">Effort = average concurrent hands as a share of a ${EFFORT_REFERENCE_HANDS}-hand reference, so ${EFFORT_REFERENCE_HANDS} hands or more scores 100. ${fmtNum(ambientCount)} ambient game${ambientCount === 1 ? ' is' : 's are'} not scored - their value isn't in how much people move.</div>
+      </div>
+    </div>
+
+    <div class="grid grid-12">
+      <div class="card span-7">
+        ${cardHead('Effort by game level', topLevel ? `Level ${topLevel.level} takes the most effort on average` : 'No active games in this filter', availPill('mock'))}
+        ${vBarChart({ items: levelBars, formatValue: (v) => v ? v + '/100' : 'ambient only' })}
+        <div class="helper-text mt-3">Averaged over active games at each level. Games with an average level of 1 are not shown.</div>
+      </div>
+      <div class="card span-5">
+        ${cardHead('Level breakdown', 'Active vs. ambient games per level', availPill('mock'))}
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Level</th><th style="text-align:right">Games</th><th style="text-align:right">Active</th><th style="text-align:right">Ambient</th><th style="text-align:right">Avg hands</th><th style="text-align:right">Effort</th></tr></thead>
+            <tbody>${levelRows}</tbody>
+          </table>
+        </div>
       </div>
     </div>
   `;

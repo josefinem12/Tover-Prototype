@@ -79,9 +79,12 @@ function renderUsage(state) {
     .map(g => ({ label: g.name, value: g.motion, color: g.type === 'active' ? 'var(--accent-yellow-deep)' : 'var(--series-3)', sub: g.type === 'active' ? 'Active play' : 'Ambient' }));
   const handsGames = INTERACTION_STATS.filter(g => g.tpu && (f.category === 'all' || g.category === f.category)).sort((a, b) => b.avgHands - a.avgHands).slice(0, 8)
     .map(g => ({ label: g.name, value: g.avgHands, color: 'var(--series-2)' }));
-  const effortItems = INTERACTION_STATS.filter(g => f.category === 'all' || g.category === f.category).sort((a, b) => b.effort - a.effort).slice(0, 8)
-    .map(g => ({ label: g.name, value: g.effort, color: 'var(--series-5)' }));
-  const avaDonut = [{ label: 'Active-play games', value: 62, color: 'var(--accent-yellow-deep)' }, { label: 'Ambient / calm games', value: 38, color: 'var(--series-3)' }];
+  const effortItems = INTERACTION_STATS.filter(g => g.type === 'active' && (f.category === 'all' || g.category === f.category)).sort((a, b) => b.effort - a.effort).slice(0, 8)
+    .map(g => ({ label: g.name, value: g.effort, color: 'var(--series-5)', sub: 'Level ' + g.level }));
+  const activeMinutes = gameStats.filter(g => g.type === 'active').reduce((s, g) => s + g.minutes, 0);
+  const ambientMinutes = gameStats.filter(g => g.type !== 'active').reduce((s, g) => s + g.minutes, 0);
+  const activeShare = activeMinutes + ambientMinutes > 0 ? Math.round((activeMinutes / (activeMinutes + ambientMinutes)) * 100) : 0;
+  const avaDonut = [{ label: 'Active-play games', value: activeShare, color: 'var(--accent-yellow-deep)' }, { label: 'Ambient / calm games', value: 100 - activeShare, color: 'var(--series-3)' }];
 
   const body = `
     <div class="grid grid-kpi">
@@ -139,8 +142,8 @@ function renderUsage(state) {
         <div class="helper-text mt-3" style="color:var(--status-action);font-weight:600">${infoDot('Hand count is a hardware signal from TPU-enabled games only - never a reliable count of people present.')} Hands ≠ people</div>
       </div>
       <div class="card span-4">
-        ${cardHead('Player effort', 'Proposed composite metric, by game', availPill('definition'))}
-        ${hBarChart({ items: effortItems, formatValue: (v) => v + '/100' })}
+        ${cardHead('Player effort', 'Active games only, scored from average hands', availPill('definition'))}
+        ${effortItems.length ? hBarChart({ items: effortItems, formatValue: (v) => v + '/100' }) : `<div class="empty-state">No active games in this filter.</div>`}
       </div>
     </div>
 
@@ -151,7 +154,7 @@ function renderUsage(state) {
           ${availPill('definition')}
         </div>
         <div class="flex items-center gap-4" style="flex-wrap:wrap;margin-top:6px">
-          ${donutChart({ items: avaDonut, formatValue: (v) => v + '%', centerLabel: 'active play', centerValue: '62%' })}
+          ${donutChart({ items: avaDonut, formatValue: (v) => v + '%', centerLabel: 'active play', centerValue: activeShare + '%' })}
           <div style="flex:1;min-width:170px" class="helper-text" style="line-height:1.6">A game with little motion is not automatically low-engagement - ambient and sensory games can be intentionally calm. This split needs an agreed game-type taxonomy before it’s more than illustrative.</div>
         </div>
       </div>
