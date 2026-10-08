@@ -1,26 +1,28 @@
 // =========================================================================
 // Customers - Dashboard A (My Tovertafels), Dashboard B (Care Home Reports),
-// Dashboard C (Highlights For You). A simplified, jargon-free reframing of
-// existing team dashboards for the care-home audience named in PRODUCT.md
-// as a confirmed future audience - same underlying signals, no new data.
+// Dashboard C (Highlights For You), Dashboard D (Wrapped / Fleet Insights).
+// A simplified, jargon-free reframing of existing team dashboards for the
+// care-home audience named in PRODUCT.md as a confirmed future audience -
+// same underlying signals, no new data.
 // =========================================================================
 
 import { esc, fmtNum, fmtMinutes, fmtCompact, fmtPct, fmtDate } from '../utils.js';
 import {
   renderTeamPage, filterSelect, filterResetButton, kpiCard,
-  cardHead, availPill, statusBadge, mountDataTable, legend,
+  cardHead, tabGroup, availPill, statusBadge, mountDataTable, legend,
 } from '../components.js';
 import { hBarChart, donutChart, SERIES_COLORS } from '../charts.js';
 import {
-  CUSTOMERS, COUNTRIES, DEVICE_TYPES, DEVICES, CUSTOMER_VALUE,
-  GAME_STATS, CATEGORY_STATS, SELECTION_SOURCE, UPTIME_TREND, GAMES,
+  CUSTOMERS, COUNTRIES, DEVICE_TYPES, DEVICES, CUSTOMER_VALUE, USAGE_TIMESERIES,
+  GAME_STATS, CATEGORY_STATS, SELECTION_SOURCE, UPTIME_TREND, GAMES, GAME_CATEGORIES,
 } from '../data.js';
-import { applyDeviceFilters } from '../filters.js';
+import { applyDeviceFilters, usageScale, filteredGameStats, filteredCategoryStats } from '../filters.js';
 
 export const TABS = [
   { key: 'devices', label: 'My Tovertafels' },
   { key: 'carehomes', label: 'Care Home Reports' },
   { key: 'highlights', label: 'Highlights For You' },
+  { key: 'wrapped', label: 'Wrapped / Fleet Insights' },
 ];
 
 function hashCode(str) { let h = 0; for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0; return Math.abs(h); }
@@ -215,10 +217,63 @@ function renderHighlights(state) {
 }
 
 // -------------------------------------------------------------------------
+// Wrapped / Fleet Insights
+// -------------------------------------------------------------------------
+
+function renderWrapped(state) {
+  const f = state.filters;
+  const ui = state.ui['customers:wrapped'] || (state.ui['customers:wrapped'] = { scope: 'fleet' });
+  const gameStats = filteredGameStats(f);
+  const categoryStats = filteredCategoryStats(f);
+  const topGame = gameStats[0];
+  const scopeMult = { device: 0.008, fleet: 1, corp: 0.32 }[ui.scope] || 1;
+  const careHomeScale = ui.scope === 'device' ? 1 : usageScale(f);
+  const yearMinutes = USAGE_TIMESERIES.reduce((s, r) => s + r.minutes, 0) * 4.1 * scopeMult * careHomeScale;
+  const yearSessions = USAGE_TIMESERIES.reduce((s, r) => s + r.sessions, 0) * 4.1 * scopeMult * careHomeScale;
+  const yearActiveDays = Math.round(62 * (ui.scope === 'corp' ? 0.9 : 1));
+
+  const body = `
+    <div class="wrapped-card">
+      <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:12px">
+        <div class="title-row" style="gap:12px">
+          <h2 style="font-size:26px;font-weight:700;color:var(--ink-on-board);text-transform:uppercase;font-family:var(--font-display)">Year in play</h2>
+          <span class="platform-tag">Tovertafel Wrapped</span>
+        </div>
+        <div class="flex items-center gap-2">
+          ${tabGroup('scope', [{ value: 'device', label: 'One device' }, { value: 'fleet', label: 'Fleet-wide' }, { value: 'corp', label: 'Care-home group' }], ui.scope)}
+          ${availPill('mock')}
+        </div>
+      </div>
+      <div class="wrapped-grid">
+        <div class="wrapped-stat"><div class="n">${fmtCompact(yearMinutes)}<span class="unit">min</span></div><div class="l">Total minutes this year</div></div>
+        <div class="wrapped-stat"><div class="n">${fmtCompact(yearSessions)}</div><div class="l">Sessions played</div></div>
+        <div class="wrapped-stat"><div class="n" style="font-size:20px">${esc(topGame ? topGame.name : '-')}</div><div class="l">Favourite game</div></div>
+        <div class="wrapped-stat"><div class="n" style="font-size:20px">${esc(categoryStats[0] ? categoryStats[0].category : '-')}</div><div class="l">Favourite category</div></div>
+        <div class="wrapped-stat"><div class="n">${yearActiveDays}<span class="unit">days</span></div><div class="l">Active days</div></div>
+      </div>
+    </div>
+  `;
+
+  return renderTeamPage(TABS, state, {
+    eyebrow: 'Customers · Dashboard D',
+    title: 'Wrapped / Fleet Insights',
+    desc: 'A year-to-date summary at device, care-home or fleet level.',
+    filtersHtml: `
+      ${filterSelect('category', 'Game category', [{ value: 'all', label: 'All categories' }, ...GAME_CATEGORIES.map(c => ({ value: c, label: c }))], f.category)}
+      ${filterSelect('game', 'Game', [{ value: 'all', label: 'All games' }, ...GAMES.map(g => ({ value: g.id, label: g.name }))], f.game)}
+      ${filterSelect('customer', 'Care home', [{ value: 'all', label: 'All care homes' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
+      ${filterResetButton()}
+    `,
+    bodyHtml: body,
+  });
+}
+
+// -------------------------------------------------------------------------
 
 export function render(state) {
   if (state.subtab === 'carehomes') return renderCareHomes(state);
   if (state.subtab === 'highlights') return renderHighlights(state);
+  if (state.subtab === 'wrapped') return renderWrapped(state);
   return renderDevices(state);
 }
 

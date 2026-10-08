@@ -1,6 +1,6 @@
 // =========================================================================
 // Research & Design - Dashboard A (Game Usage & Interaction Explorer),
-// Dashboard B (Game Selection Journey), Dashboard C (Wrapped / Fleet Insights)
+// Dashboard B (Game Selection Journey)
 // =========================================================================
 
 import { esc, fmtNum, fmtMinutes, fmtCompact, fmtDate, fmtPct } from '../utils.js';
@@ -18,7 +18,6 @@ import { applyDeviceFilters, usageScale, filteredGameStats, filteredCategoryStat
 export const TABS = [
   { key: 'usage', label: 'Usage & Interaction' },
   { key: 'selection', label: 'Game Selection Journey' },
-  { key: 'wrapped', label: 'Wrapped / Fleet Insights' },
 ];
 
 function slice(days) { const a = USAGE_TIMESERIES; return a.slice(a.length - days); }
@@ -221,26 +220,13 @@ function renderSelection(state) {
       ${renderFunnel(SELECTION_FUNNEL)}
     </div>
 
-    <div class="grid grid-12">
-      <div class="card span-5">
-        ${cardHead('Handpicked vs. the rest', 'Share of sessions by selection path', availPill('available'))}
-        <div class="flex items-center gap-4" style="flex-wrap:wrap">
-          ${donutChart({ items: sourceItems, formatValue: (v) => v + '%', centerLabel: 'handpicked', centerValue: SELECTION_SOURCE[0].pct + '%' })}
-          <div style="flex:1;min-width:170px">${legend(sourceItems)}</div>
-        </div>
-        <div class="helper-text mt-3">The handpicked flag is real and audited. Splitting the remaining 93.8% into shuffle vs. un-flagged manual browsing needs an explicit selection-source field. ${availPill('new-tracking')}</div>
+    <div class="card">
+      ${cardHead('Handpicked vs. the rest', 'Share of sessions by selection path', availPill('available'))}
+      <div class="flex items-center gap-4" style="flex-wrap:wrap">
+        ${donutChart({ items: sourceItems, formatValue: (v) => v + '%', centerLabel: 'handpicked', centerValue: SELECTION_SOURCE[0].pct + '%' })}
+        <div style="flex:1;min-width:170px">${legend(sourceItems)}</div>
       </div>
-      <div class="card span-7">
-        <div class="flex items-center justify-between" style="margin-bottom:4px">
-          <div class="titles"><h3 style="font-size:13.5px;font-weight:700">Preference vs. availability</h3><div class="card-sub">Is a game popular because it’s preferred, or because it’s one of the few unlocked?</div></div>
-          ${availPill('integration')}
-        </div>
-        <div class="helper-text mt-3" style="line-height:1.7;max-width:520px">
-          Needs usage joined with subscription/package data and per-customer unlocked-game entitlements. Until that join
-          exists, a "top played" ranking can’t be safely read as a genuine preference signal - it may just reflect what a
-          given fleet has access to.
-        </div>
-      </div>
+      <div class="helper-text mt-3">The handpicked flag is real and audited. Splitting the remaining 93.8% into shuffle vs. un-flagged manual browsing needs an explicit selection-source field. ${availPill('new-tracking')}</div>
     </div>
   `;
 
@@ -255,61 +241,9 @@ function renderSelection(state) {
 }
 
 // -------------------------------------------------------------------------
-// Wrapped / Fleet Insights
-// -------------------------------------------------------------------------
-
-function renderWrapped(state) {
-  const f = state.filters;
-  const ui = state.ui['rd:wrapped'] || (state.ui['rd:wrapped'] = { scope: 'fleet' });
-  const gameStats = filteredGameStats(f);
-  const categoryStats = filteredCategoryStats(f);
-  const topGame = gameStats[0];
-  const wrappedMult = { device: 0.008, fleet: 1, corp: 0.32 }[ui.scope] || 1;
-  const yearMinutes = sum(USAGE_TIMESERIES, 'minutes') * 4.1 * wrappedMult;
-  const yearSessions = sum(USAGE_TIMESERIES, 'sessions') * 4.1 * wrappedMult;
-  const yearActiveDays = Math.round(62 * (ui.scope === 'device' ? 1 : ui.scope === 'corp' ? 0.9 : 1));
-
-  const body = `
-    <div class="wrapped-card">
-      <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:12px">
-        <div class="title-row" style="gap:12px">
-          <h2 style="font-size:26px;font-weight:700;color:var(--ink-on-board);text-transform:uppercase;font-family:var(--font-display)">Year in play</h2>
-          <span class="platform-tag">Tovertafel Wrapped · concept</span>
-        </div>
-        <div class="flex items-center gap-2">
-          ${tabGroup('scope', [{ value: 'device', label: 'One device' }, { value: 'fleet', label: 'Fleet-wide' }, { value: 'corp', label: 'Care-home group' }], ui.scope)}
-          ${availPill('mock')}
-        </div>
-      </div>
-      <div class="wrapped-grid">
-        <div class="wrapped-stat"><div class="n">${fmtCompact(yearMinutes)}<span class="unit">min</span></div><div class="l">Total minutes this year</div></div>
-        <div class="wrapped-stat"><div class="n">${fmtCompact(yearSessions)}</div><div class="l">Sessions played</div></div>
-        <div class="wrapped-stat"><div class="n" style="font-size:20px">${esc(topGame ? topGame.name : '-')}</div><div class="l">Favourite game</div></div>
-        <div class="wrapped-stat"><div class="n" style="font-size:20px">${esc(categoryStats[0] ? categoryStats[0].category : '-')}</div><div class="l">Favourite category</div></div>
-        <div class="wrapped-stat"><div class="n">${yearActiveDays}<span class="unit">days</span></div><div class="l">Active days</div></div>
-      </div>
-      <div class="helper-text mt-4" style="max-width:640px">
-        Framed as a fast, legible recap - a care team or account manager could screenshot it - rather than a viral
-        share card. Long-term aggregates, customer/fleet grouping, game metadata and subscription information all
-        still need to be wired up before this is real. ${infoDot('Needs reliable long-term aggregates, customer/fleet grouping, game metadata and subscription information.')}
-      </div>
-    </div>
-  `;
-
-  return renderTeamPage(TABS, state, {
-    eyebrow: 'Research & Design · Dashboard C',
-    title: 'Wrapped / Fleet Insights',
-    desc: 'A year-to-date summary at device, care-home or fleet level.',
-    filtersHtml: contextFilters(f),
-    bodyHtml: body,
-  });
-}
-
-// -------------------------------------------------------------------------
 
 export function render(state) {
   if (state.subtab === 'selection') return renderSelection(state);
-  if (state.subtab === 'wrapped') return renderWrapped(state);
   return renderUsage(state);
 }
 
