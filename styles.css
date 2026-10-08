@@ -106,7 +106,7 @@
 .grid > *, .flex > *, .flex-col > *,
 .board-row, .board-row > *,
 .page-header-top > *, .title-row, .title-row > *,
-.card-head > .titles, .kv-item, .roadmap-row > * {
+.card-head > .titles, .kv-item {
   min-width: 0;
 }
 
@@ -1182,22 +1182,6 @@ select:focus-visible,
   .board-row { grid-template-columns: 1fr; gap: 6px; }
   .board-row-arrow { display: none; }
 }
-
-/* =========================================================================
-   Roadmap / status list (Software metric roadmap, etc.)
-   ========================================================================= */
-
-.roadmap-row {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-4);
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--border);
-}
-.roadmap-row:first-child { border-top: 2px solid var(--board); }
-.roadmap-title { font-size: 13.5px; font-weight: 700; color: var(--ink-primary); }
-.roadmap-meta { font-size: 12px; color: var(--ink-muted); margin-top: 2px; line-height: 1.5; }
-.roadmap-teams { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
 
 /* =========================================================================
    Misc utility
