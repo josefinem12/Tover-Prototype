@@ -12,7 +12,7 @@ import { worldMapSvg, hBarChart, vBarChart, sparkline, SERIES_COLORS } from '../
 import {
   DEVICES, COUNTRIES, CUSTOMERS, SOFTWARE_VERSIONS, DEVICE_TYPES, SUBSCRIPTIONS,
   GAMES, GAME_CATEGORIES, generateLiveFeed, SELECTION_FUNNEL, INTERACTION_STATS,
-  EFFORT_REFERENCE_HANDS, levelEffort,
+  EFFORT_REFERENCE_HANDS, levelEffort, topGamesRightNow, DATA_WINDOW,
 } from '../data.js';
 import { applyDeviceFilters } from '../filters.js';
 
@@ -26,18 +26,19 @@ export const TABS = [
 // Live World View
 // -------------------------------------------------------------------------
 
-function hashCode(str) { let h = 0; for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0; return Math.abs(h); }
-function gameForDevice(d) { return d.currentGame || GAMES[hashCode(d.id) % GAMES.length].name; }
-function deviceGame(d) { return GAMES.find(g => g.name === gameForDevice(d)); }
+// Live per-device game state isn't in Elasticsearch, so a game/category
+// filter can't narrow the device list on this page - only the feed.
+function gameForDevice(d) { return d.currentGame; }
 function gameNameMatchesFilters(name, f) {
   if (f.game === 'all' && f.category === 'all') return true;
+  if (!name) return false;
   const g = GAMES.find(x => x.name === name);
   if (!g) return false;
   if (f.game !== 'all' && g.id !== f.game) return false;
   if (f.category !== 'all' && g.category !== f.category) return false;
   return true;
 }
-function matchesGameFilters(d, f) { return gameNameMatchesFilters(gameForDevice(d), f); }
+function matchesGameFilters(d, f) { return !gameForDevice(d) || gameNameMatchesFilters(gameForDevice(d), f); }
 function mapStatus(d) { if (d.isOffline) return 'offline'; if (d.lastSeenMinutes < 15) return 'now'; if (d.lastSeenMinutes < 180) return 'recent'; return 'offline'; }
 const STATUS_LABEL = { now: 'Active now', recent: 'Recently active', offline: 'Offline / not recently seen' };
 const FEED_META = {
@@ -55,17 +56,17 @@ function renderWorld(state) {
   const now = filtered.filter(d => mapStatus(d) === 'now');
   const recent = filtered.filter(d => mapStatus(d) === 'recent');
   const offline = filtered.filter(d => mapStatus(d) === 'offline');
-  const markers = filtered.map(d => ({ id: d.id, lat: d.geo.lat, lon: d.geo.lon, status: mapStatus(d), serial: d.serial, customer: d.customer, country: d.country, statusLabel: STATUS_LABEL[mapStatus(d)] }));
+  // Only devices with a real GeoIP fix are plotted; partner-inferred countries still count in the table.
+  const markers = filtered.filter(d => d.geo && !d.countryInferred).map(d => ({ id: d.id, lat: d.geo.lat, lon: d.geo.lon, status: mapStatus(d), serial: d.serial, customer: d.customer, country: d.country, statusLabel: STATUS_LABEL[mapStatus(d)] }));
 
-  const gameCounts = {};
-  now.forEach(d => { const g = gameForDevice(d); gameCounts[g] = (gameCounts[g] || 0) + 1; });
-  const topGames = Object.entries(gameCounts).map(([name, count]) => ({ label: name, value: count, color: 'var(--accent-yellow-deep)' })).sort((a, b) => b.value - a.value).slice(0, 7);
+  const topGames = topGamesRightNow().filter(g => gameNameMatchesFilters(g.name, f)).slice(0, 7)
+    .map(g => ({ label: g.name, value: g.count, color: 'var(--accent-yellow-deep)' }));
   const feed = getFeed().filter(e => applyDeviceFilters([e.device], f).length > 0 && gameNameMatchesFilters(e.game, f)).slice(0, 10);
   const byCountry = COUNTRIES.map(c => ({ country: c.name, total: filtered.filter(d => d.countryCode === c.code).length })).filter(r => r.total > 0);
 
   const body = `
     <div class="grid grid-kpi">
-      ${kpiCard({ label: 'Active right now', value: fmtNum(now.length), sub: 'session in progress', tooltip: 'Devices with a live signal in the last 15 minutes. Supported once MQTT event querying is reliable.' })}
+      ${kpiCard({ label: 'Online right now', value: fmtNum(now.length), sub: 'any event in last 15 min', tooltip: `Devices that sent a PING or other event in the 15 minutes before the Elasticsearch snapshot (${DATA_WINDOW.snapshotAt.toLocaleString()}). Online, not necessarily mid-session.` })}
       ${kpiCard({ label: 'Recently active', value: fmtNum(recent.length), sub: 'seen within 3 hours' })}
       ${kpiCard({ label: 'Offline / stale', value: fmtNum(offline.length), sub: 'no signal in 3+ hours' })}
       ${kpiCard({ label: 'Countries reporting', value: fmtNum(byCountry.length), sub: `of ${fmtNum(COUNTRIES.length)} tracked regions` })}
@@ -87,7 +88,7 @@ function renderWorld(state) {
         </div>
       </div>
       <div class="card span-4">
-        ${cardHead('Recent activity', 'Live feed', availPill('mock'))}
+        ${cardHead('Recent activity', 'Latest lifecycle event per device, from eventlog', availPill('available'))}
         <div class="feed-list">
           ${feed.length ? feed.map(e => `
             <div class="feed-item" data-device-id="${esc(e.device.id)}" style="cursor:pointer">
@@ -101,8 +102,8 @@ function renderWorld(state) {
 
     <div class="grid grid-12">
       <div class="card span-5">
-        ${cardHead('Top games right now', now.length ? `Across ${fmtNum(now.length)} live sessions` : 'No live sessions match this filter', availPill('mock'))}
-        ${topGames.length ? hBarChart({ items: topGames, formatValue: (v) => fmtNum(v) + ' playing' }) : `<div class="empty-state">Nothing playing right now.</div>`}
+        ${cardHead('Top games, last full day', `Sessions on ${DATA_WINDOW.usageTo.toLocaleDateString()} - live per-device game state isn't in Elasticsearch`, availPill('integration'))}
+        ${topGames.length ? hBarChart({ items: topGames, formatValue: (v) => fmtNum(v) + ' sessions' }) : `<div class="empty-state">No sessions match this filter.</div>`}
       </div>
       <div class="card span-7">
         <div class="flex items-center justify-between" style="margin-bottom:4px">
@@ -114,7 +115,7 @@ function renderWorld(state) {
     </div>
 
     <div class="helper-text" style="max-width:760px">
-      ${infoDot('')} Device coordinates are illustrative GeoIP-style placements, not a customer’s
+      ${infoDot('')} Device markers are real GeoIP placements of the reporting IP (devices GeoIP can't place, ~half the fleet, aren't plotted), not a customer’s
       configured interface language or locale - those are two different fields, and only physical location belongs on this map.
     </div>
   `;
@@ -130,7 +131,7 @@ function renderWorld(state) {
       ${filterDivider()}
       ${filterSelect('country', 'Country / region', [{ value: 'all', label: 'All countries / regions' }, ...COUNTRIES.map(c => ({ value: c.code, label: c.name }))], f.country)}
       ${filterSelect('deviceType', 'Device type', [{ value: 'all', label: 'All device types' }, ...DEVICE_TYPES.map(d => ({ value: d, label: d }))], f.deviceType)}
-      ${filterSelect('customer', 'Customer / fleet', [{ value: 'all', label: 'All customers / fleets' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
+      ${filterSelect('customer', 'Partner', [{ value: 'all', label: 'All partners' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
       ${filterSelect('version', 'Software version', [{ value: 'all', label: 'All versions' }, ...SOFTWARE_VERSIONS.map(v => ({ value: v, label: 'v' + v }))], f.version)}
       ${filterSelect('subscription', 'Subscription', [{ value: 'all', label: 'All subscriptions' }, ...SUBSCRIPTIONS.map(s => ({ value: s, label: s }))], f.subscription)}
       ${filterResetButton()}
@@ -335,7 +336,7 @@ function renderHealth(state) {
       ${filterSelect('category', 'Game category', [{ value: 'all', label: 'All categories' }, ...GAME_CATEGORIES.map(c => ({ value: c, label: c }))], f.category)}
       ${filterSelect('game', 'Game', [{ value: 'all', label: 'All games' }, ...GAMES.map(g => ({ value: g.id, label: g.name }))], f.game)}
       ${filterDivider()}
-      ${filterSelect('customer', 'Customer / fleet', [{ value: 'all', label: 'All customers / fleets' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
+      ${filterSelect('customer', 'Partner', [{ value: 'all', label: 'All partners' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
       ${filterSelect('country', 'Country', [{ value: 'all', label: 'All countries' }, ...COUNTRIES.map(c => ({ value: c.code, label: c.name }))], f.country)}
       ${filterSelect('deviceType', 'Device type', [{ value: 'all', label: 'All device types' }, ...DEVICE_TYPES.map(d => ({ value: d, label: d }))], f.deviceType)}
       ${filterSelect('version', 'Software version', [{ value: 'all', label: 'All versions' }, ...SOFTWARE_VERSIONS.map(v => ({ value: v, label: 'v' + v }))], f.version)}
@@ -354,13 +355,13 @@ function mountHealth(root, state) {
     onRowClick: (id) => document.dispatchEvent(new CustomEvent('app:selectDevice', { detail: { id } })),
     columns: [
       { key: 'serial', label: 'Serial', render: (r) => `<span class="mono">${esc(r.serial)}</span>` },
-      { key: 'customer', label: 'Customer / fleet' },
+      { key: 'customer', label: 'Partner' },
       { key: 'type', label: 'Type' },
       { key: 'lastSeenMinutes', label: 'Last seen', align: 'right', render: (r) => timeAgo(new Date(Date.now() - r.lastSeenMinutes * 60000)) },
       { key: 'minutesLast30d', label: 'Recent usage', align: 'right', render: (r) => `<div class="flex items-center gap-2" style="justify-content:flex-end">${sparkline(r.trend7d, { width: 46, height: 16 })}<span>${fmtMinutes(r.minutesLast30d)}</span></div>` },
       { key: 'softwareVersion', label: 'Version', align: 'right', render: (r) => `<span class="mono">v${esc(r.softwareVersion)}</span>` },
       { key: 'updateStatus', label: 'Update status', sortValue: (r) => r.softwareVersion === LATEST_VERSION ? 1 : 0, render: (r) => r.softwareVersion === LATEST_VERSION ? statusBadge('good', 'Up to date') : statusBadge('warning', 'Update available') },
-      { key: 'errorCount7d', label: 'Errors (7d)', align: 'right', render: (r) => r.errorCount7d > 0 ? `<span style="color:var(--status-critical);font-weight:700">${r.errorCount7d}</span>` : '0' },
+      { key: 'errorCount7d', label: 'Errors (7d)', align: 'right', render: (r) => r.errorCount7d > 0 ? `<span style="color:var(--status-critical);font-weight:700">${fmtNum(r.errorCount7d)}</span>` : '0' },
       { key: 'pbit', label: 'PBIT', sortValue: (r) => ({ pass: 0, warning: 1, fail: 2 })[pbitOverall(r)], render: (r) => statusBadge(pbitOverall(r), pbitOverall(r) === 'pass' ? 'Nominal' : pbitOverall(r) === 'warning' ? 'Watch' : 'Failing') },
       { key: 'technicalHealth', label: 'Technical', render: (r) => statusBadge(r.technicalHealth) },
       { key: 'usageHealth', label: 'Usage', render: (r) => statusBadge(r.usageHealth) },

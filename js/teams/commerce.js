@@ -41,13 +41,13 @@ function renderValue(state) {
       ${kpiCard({ label: 'Minutes played', value: fmtCompact(totalMinutes), sub: 'last 30 days', tooltip: 'Usage exists today; customer mapping needs integration to fully trust cross-fleet totals.' })}
       ${kpiCard({ label: 'Sessions', value: fmtCompact(totalSessions), sub: 'last 30 days' })}
       ${kpiCard({ label: 'Active devices', value: fmtNum(totalActive), sub: `of ${fmtNum(totalDevices)} devices` })}
-      ${kpiCard({ label: 'Fleets represented', value: fmtNum(rows.length), sub: 'customers / care-home groups' })}
+      ${kpiCard({ label: 'Partners represented', value: fmtNum(rows.length), sub: 'distributors / account holders' })}
     </div>
 
     <div class="grid grid-12">
       <div class="card span-7">
         <div class="flex items-center justify-between" style="margin-bottom:4px">
-          <div class="titles"><h3 style="font-size:13.5px;font-weight:700">Fleet comparison</h3><div class="card-sub">Minutes played by customer / care-home group, last 30 days</div></div>
+          <div class="titles"><h3 style="font-size:13.5px;font-weight:700">Fleet comparison</h3><div class="card-sub">Minutes played by partner, last 30 days of usage data</div></div>
           ${availPill('integration')}
         </div>
         ${hBarChart({ items: fleetItems, formatValue: (v) => fmtCompact(v) + ' min' })}
@@ -64,7 +64,7 @@ function renderValue(state) {
         <div class="flex gap-2">${availPill('definition')}</div>
       </div>
       <div data-table-mount="value"></div>
-      <div class="helper-text mt-3">Engagement trend is illustrative here - the actual ROI definition (minutes? active days? caregiver-reported outcomes?) needs to be agreed with Commerce before this becomes a real report.</div>
+      <div class="helper-text mt-3">Engagement trend = minutes in the last 15 days of usage data vs. the 15 days before. The actual ROI definition (minutes? active days? caregiver-reported outcomes?) needs to be agreed with Commerce before this becomes a real report.</div>
     </div>
   `;
 
@@ -73,7 +73,7 @@ function renderValue(state) {
     title: 'Customer & Fleet Value',
     desc: 'Demonstrating value and reliability to customers and partners - usage, engagement and fleet comparison.',
     filtersHtml: `
-      ${filterSelect('customer', 'Customer / fleet', [{ value: 'all', label: 'All customers / fleets' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
+      ${filterSelect('customer', 'Partner', [{ value: 'all', label: 'All partners' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
       ${filterSelect('country', 'Country', [{ value: 'all', label: 'All countries' }, ...COUNTRIES.map(c => ({ value: c.code, label: c.name }))], f.country)}
       ${filterResetButton()}
     `,
@@ -87,7 +87,7 @@ function mountValue(root, state) {
   mountDataTable(root, 'value', {
     rows, rowKey: 'id', searchFields: ['name', 'country'], searchPlaceholder: 'Search customer…', defaultSort: { col: 'minutes', dir: 'desc' },
     columns: [
-      { key: 'name', label: 'Customer / fleet' },
+      { key: 'name', label: 'Partner' },
       { key: 'country', label: 'Country' },
       { key: 'deviceCount', label: 'Devices', align: 'right', render: (r) => fmtNum(r.deviceCount) },
       { key: 'minutes', label: 'Minutes (30d)', align: 'right', render: (r) => fmtCompact(r.minutes) },
@@ -150,7 +150,7 @@ function renderReliability(state) {
     sharedWith: 'Product and Operations (same underlying health signals, more technical detail)',
     filtersHtml: `
       ${filterSelect('deviceType', 'Device type', [{ value: 'all', label: 'All device types' }, ...DEVICE_TYPES.map(d => ({ value: d, label: d }))], f.deviceType)}
-      ${filterSelect('customer', 'Customer / fleet', [{ value: 'all', label: 'All customers / fleets' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
+      ${filterSelect('customer', 'Partner', [{ value: 'all', label: 'All partners' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
       ${filterResetButton()}
     `,
     bodyHtml: body,

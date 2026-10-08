@@ -12,6 +12,7 @@ import { lineAreaChart, hBarChart, donutChart, vBarChart, SERIES_COLORS } from '
 import {
   USAGE_TIMESERIES, GAMES, GAME_CATEGORIES, CUSTOMERS, COUNTRIES, SOFTWARE_VERSIONS,
   DEVICE_TYPES, SUBSCRIPTIONS, SELECTION_SOURCE, SELECTION_FUNNEL, DEVICES, INTERACTION_STATS,
+  DATA_WINDOW, CATEGORY_COVERAGE,
 } from '../data.js';
 import { applyDeviceFilters, usageScale, filteredGameStats, filteredCategoryStats, dateRangeDays, dateRangeMultiplier } from '../filters.js';
 
@@ -26,10 +27,10 @@ function sum(arr, key) { return arr.reduce((s, r) => s + r[key], 0); }
 function pctDelta(cur, prev) { return prev > 0 ? ((cur - prev) / prev) * 100 : 0; }
 
 function activeDaysBuckets(devices) {
-  const buckets = [{ l: '0–5', min: 0, max: 5 }, { l: '6–10', min: 6, max: 10 }, { l: '11–15', min: 11, max: 15 }, { l: '16–20', min: 16, max: 20 }, { l: '21–25', min: 21, max: 25 }, { l: '26–30', min: 26, max: 30 }];
+  const buckets = [{ l: '1–5', min: 1, max: 5 }, { l: '6–10', min: 6, max: 10 }, { l: '11–15', min: 11, max: 15 }, { l: '16–20', min: 16, max: 20 }, { l: '21–25', min: 21, max: 25 }, { l: '26–30', min: 26, max: 30 }];
   return buckets.map((b, i) => ({
     label: b.l,
-    value: devices.filter(d => { const ad = Math.min(30, Math.round(d.sessionsLast30d / 1.5)); return ad >= b.min && ad <= b.max; }).length,
+    value: devices.filter(d => d.activeDays30 >= b.min && d.activeDays30 <= b.max).length,
     color: SERIES_COLORS[Math.min(i, 5)],
   }));
 }
@@ -39,7 +40,7 @@ function contextFilters(f, extra) {
     ${filterSelect('category', 'Category', [{ value: 'all', label: 'All categories' }, ...GAME_CATEGORIES.map(c => ({ value: c, label: c }))], f.category)}
     ${filterSelect('game', 'Game', [{ value: 'all', label: 'All games' }, ...GAMES.map(g => ({ value: g.id, label: g.name }))], f.game)}
     ${filterDivider()}
-    ${filterSelect('customer', 'Customer / fleet', [{ value: 'all', label: 'All customers / fleets' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
+    ${filterSelect('customer', 'Partner', [{ value: 'all', label: 'All partners' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
     ${filterSelect('country', 'Country / region', [{ value: 'all', label: 'All countries' }, ...COUNTRIES.map(c => ({ value: c.code, label: c.name }))], f.country)}
     ${extra || ''}
     ${filterResetButton()}
@@ -72,7 +73,8 @@ function renderUsage(state) {
   const categoryStats = filteredCategoryStats(f);
   const rankItems = gameStats.slice(0, 8).map((g, i) => ({ label: g.name, value: ui.rank === 'sessions' ? g.sessions : g.minutes, color: SERIES_COLORS[i % SERIES_COLORS.length], sub: g.category }));
   const catDonutItems = categoryStats.map((c, i) => ({ label: c.category, value: c.minutes, color: SERIES_COLORS[i % SERIES_COLORS.length] }));
-  const activeBuckets = activeDaysBuckets(filteredDevices);
+  const playingDevices = filteredDevices.filter(d => d.activeDays30 > 0);
+  const activeBuckets = activeDaysBuckets(playingDevices);
 
   const motionItems = INTERACTION_STATS.filter(g => f.category === 'all' || g.category === f.category).sort((a, b) => b.motion - a.motion).slice(0, 8)
     .map(g => ({ label: g.name, value: g.motion, color: g.type === 'active' ? 'var(--accent-yellow-deep)' : 'var(--series-3)', sub: g.type === 'active' ? 'Active play' : 'Ambient' }));
@@ -81,7 +83,7 @@ function renderUsage(state) {
   const effortItems = INTERACTION_STATS.filter(g => g.type === 'active' && (f.category === 'all' || g.category === f.category)).sort((a, b) => b.effort - a.effort).slice(0, 8)
     .map(g => ({ label: g.name, value: g.effort, color: 'var(--series-5)', sub: 'Level ' + g.level }));
   const activeMinutes = gameStats.filter(g => g.type === 'active').reduce((s, g) => s + g.minutes, 0);
-  const ambientMinutes = gameStats.filter(g => g.type !== 'active').reduce((s, g) => s + g.minutes, 0);
+  const ambientMinutes = gameStats.filter(g => g.type === 'ambient').reduce((s, g) => s + g.minutes, 0);
   const activeShare = activeMinutes + ambientMinutes > 0 ? Math.round((activeMinutes / (activeMinutes + ambientMinutes)) * 100) : 0;
   const avaDonut = [{ label: 'Active-play games', value: activeShare, color: 'var(--accent-yellow-deep)' }, { label: 'Ambient / calm games', value: 100 - activeShare, color: 'var(--series-3)' }];
 
@@ -96,11 +98,11 @@ function renderUsage(state) {
 
     <div class="grid grid-12">
       <div class="card span-7">
-        ${cardHead('Minutes played over time', `Last ${days} days · hour/day/week rollups available`, availPill('available'))}
+        ${cardHead('Minutes played over time', `Last ${days} days of usage data, through ${fmtDate(DATA_WINDOW.usageTo)}`, availPill('available'))}
         ${lineAreaChart({ labels: cur.map(r => r.date), values: cur.map(r => r.minutes), color: 'var(--accent-yellow-deep)', fillColor: 'var(--accent-yellow)', formatLabel: (d) => fmtDate(d), formatValue: (v) => fmtCompact(v) + ' min' })}
       </div>
       <div class="card span-5">
-        ${cardHead('Active days / usage frequency', `Days played in last 30, across ${fmtNum(filteredDevices.length)} devices`, availPill('available'))}
+        ${cardHead('Active days / usage frequency', `Days played in last 30, across the ${fmtNum(playingDevices.length)} devices that played`, availPill('available'))}
         ${vBarChart({ items: activeBuckets, formatValue: (v) => fmtNum(v) + ' devices' })}
       </div>
     </div>
@@ -111,7 +113,7 @@ function renderUsage(state) {
         ${hBarChart({ items: rankItems, formatValue: (v) => fmtCompact(v) + (ui.rank === 'sessions' ? ' sessions' : ' min') })}
       </div>
       <div class="card span-5">
-        ${cardHead('Minutes by category', null, availPill('available'))}
+        ${cardHead('Minutes by category', `Catalogued games only - ${CATEGORY_COVERAGE}% of all minutes`, availPill('available'))}
         <div class="flex items-center gap-4" style="flex-wrap:wrap">
           ${donutChart({ items: catDonutItems, centerLabel: 'categories', centerValue: categoryStats.length })}
           <div style="flex:1;min-width:150px">${legend(catDonutItems)}</div>
@@ -187,11 +189,11 @@ function mountUsage(root, state) {
     columns: [
       { key: 'name', label: 'Game' },
       { key: 'category', label: 'Category' },
-      { key: 'type', label: 'Type', render: (r) => r.type === 'active' ? 'Active play' : 'Ambient' },
+      { key: 'type', label: 'Type', render: (r) => r.type === 'active' ? 'Active play' : r.type === 'ambient' ? 'Ambient' : '-' },
       { key: 'minutes', label: 'Minutes', align: 'right', render: (r) => fmtCompact(r.minutes) },
       { key: 'sessions', label: 'Sessions', align: 'right', render: (r) => fmtCompact(r.sessions) },
       { key: 'deviceReach', label: 'Device reach', align: 'right', render: (r) => fmtNum(r.deviceReach) },
-      { key: 'manualPct', label: 'Manual %', align: 'right', render: (r) => r.manualPct + '%' },
+      { key: 'manualPct', label: 'Manual %', align: 'right', render: (r) => r.manualPct == null ? '-' : r.manualPct + '%' },
     ],
   });
 }

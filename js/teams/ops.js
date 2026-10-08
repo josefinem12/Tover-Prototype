@@ -65,7 +65,7 @@ function renderMonitor(state) {
         ${hBarChart({ items: pbitItems, formatValue: (v) => fmtNum(v) + ' devices' })}
       </div>
       <div class="card span-6">
-        ${cardHead('Error & crash/freeze timeline', 'Fleet-wide daily count, last 30 days', availPill('integration'))}
+        ${cardHead('Error timeline', 'SPDLOG error lines per day, fleet-wide (crash/freeze data not in ES yet)', availPill('available'))}
         ${lineAreaChart({ labels: ERROR_TIMELINE.map(r => r.date), values: ERROR_TIMELINE.map(r => r.errors), color: 'var(--status-critical)', fillColor: 'var(--status-critical)', formatLabel: (d) => fmtDate(d), formatValue: (v) => fmtNum(v) + ' errors' })}
       </div>
     </div>
@@ -73,8 +73,8 @@ function renderMonitor(state) {
     <div class="grid grid-12">
       <div class="card span-6">
         <div class="flex items-center justify-between" style="margin-bottom:4px">
-          <div class="titles"><h3 style="font-size:13.5px;font-weight:700">Recurring issue alerts</h3><div class="card-sub">Repeated failures or a worsening state, not one-off blips</div></div>
-          ${availPill('new-tracking')}
+          <div class="titles"><h3 style="font-size:13.5px;font-weight:700">Recurring issue alerts</h3><div class="card-sub">Online devices logging 1,000+ error lines in the last 7 days of data</div></div>
+          ${availPill('available')}
         </div>
         <div class="feed-list">
           ${RECURRING_ISSUES.slice(0, 7).map(ri => `
@@ -113,7 +113,7 @@ function renderMonitor(state) {
     desc: 'Whether devices are functioning correctly, and what needs a remote fix or a field visit.',
     sharedWith: 'Product (same tech/usage split, less operational depth) and Commerce (simplified reliability view)',
     filtersHtml: `
-      ${filterSelect('customer', 'Customer / fleet', [{ value: 'all', label: 'All customers / fleets' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
+      ${filterSelect('customer', 'Partner', [{ value: 'all', label: 'All partners' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
       ${filterSelect('country', 'Country', [{ value: 'all', label: 'All countries' }, ...COUNTRIES.map(c => ({ value: c.code, label: c.name }))], f.country)}
       ${filterSelect('deviceType', 'Device type', [{ value: 'all', label: 'All device types' }, ...DEVICE_TYPES.map(d => ({ value: d, label: d }))], f.deviceType)}
       ${filterSelect('version', 'Software version', [{ value: 'all', label: 'All versions' }, ...SOFTWARE_VERSIONS.map(v => ({ value: v, label: 'v' + v }))], f.version)}
@@ -131,12 +131,12 @@ function mountMonitor(root, state) {
     onRowClick: (id) => document.dispatchEvent(new CustomEvent('app:selectDevice', { detail: { id } })),
     columns: [
       { key: 'serial', label: 'Serial', render: (r) => `<span class="mono">${esc(r.serial)}</span>` },
-      { key: 'customer', label: 'Customer / fleet' },
+      { key: 'customer', label: 'Partner' },
       { key: 'batch', label: 'Batch' },
       { key: 'lastSeenMinutes', label: 'Last seen', align: 'right', render: (r) => timeAgo(new Date(Date.now() - r.lastSeenMinutes * 60000)) },
       { key: 'softwareVersion', label: 'Version', align: 'right', render: (r) => `<span class="mono">v${esc(r.softwareVersion)}</span>` },
-      { key: 'errorCount7d', label: 'Errors (7d)', align: 'right', render: (r) => r.errorCount7d > 0 ? `<span style="color:var(--status-critical);font-weight:700">${r.errorCount7d}</span>` : '0' },
-      { key: 'crashCount30d', label: 'Crashes (30d)', align: 'right', render: (r) => fmtNum(r.crashCount30d) },
+      { key: 'errorCount7d', label: 'Errors (7d)', align: 'right', render: (r) => r.errorCount7d > 0 ? `<span style="color:var(--status-critical);font-weight:700">${fmtNum(r.errorCount7d)}</span>` : '0' },
+      { key: 'restarts30d', label: 'Restarts (30d)', align: 'right', render: (r) => fmtNum(r.restarts30d) },
       { key: 'pbit', label: 'PBIT', sortValue: (r) => ({ pass: 0, warning: 1, fail: 2 })[pbitOverall(r)], render: (r) => statusBadge(pbitOverall(r), pbitOverall(r) === 'pass' ? 'Nominal' : pbitOverall(r) === 'warning' ? 'Watch' : 'Failing') },
       { key: 'technicalHealth', label: 'Status', render: (r) => statusBadge(r.technicalHealth) },
     ],

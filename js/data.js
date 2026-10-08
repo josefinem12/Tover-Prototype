@@ -1,15 +1,36 @@
 // =========================================================================
-// Mock data layer for the Tover Insights prototype.
+// Data layer for Tover Insights.
 //
-// Everything here is generated client-side from a seeded RNG so the
-// dashboard is deterministic across reloads. This file is the ONLY place
-// that knows data is mocked - components/pages just consume plain objects,
-// so a later swap to real Elasticsearch/API/MQTT data only touches this file.
+// Real data comes from SNAPSHOT (js/realData.js), an Elasticsearch extract
+// produced by scripts/build_snapshot.py:
+//   - usagelog-*  one doc per game session -> minutes, sessions, games
+//   - eventlog-*  PING / lifecycle events  -> fleet, last seen, version,
+//                 partner, GeoIP; SPDLOG   -> device error log lines
+//
+// Anything Elasticsearch doesn't hold (subscriptions, hardware revision,
+// batches, PBIT, hands/motion, crashes, uptime, remote actions) is still
+// generated from a seeded RNG and keeps its 'mock' / 'planned' / 'integration'
+// pill in the UI. Pages only consume plain objects from here, so swapping a
+// mock for a real source later still only touches this file.
 // =========================================================================
 
-import { makeRng, pick, randInt, randFloat, clamp, daysAgo, minutesAgo } from './utils.js';
+import { makeRng, pick, randInt, randFloat, clamp, daysAgo } from './utils.js';
+import { SNAPSHOT } from './realData.js';
 
 const rng = makeRng(20260922);
+
+const SNAPSHOT_NOW = new Date(SNAPSHOT.meta.snapshotAt).getTime();
+const localDate = (iso) => { const [y, m, d] = iso.slice(0, 10).split('-').map(Number); return new Date(y, m - 1, d); };
+
+// The windows the real numbers cover - shown in page copy so nobody reads a
+// 30-day total ending 29 Sep as "the last 30 days from today".
+export const DATA_WINDOW = {
+  snapshotAt: new Date(SNAPSHOT.meta.snapshotAt),
+  usageFrom: localDate(SNAPSHOT.meta.usageFrom),
+  usageTo: localDate(SNAPSHOT.meta.usageTo),
+  usage30From: localDate(SNAPSHOT.meta.usage30From),
+  errors7From: localDate(SNAPSHOT.meta.last7From),
+};
 
 // -------------------------------------------------------------------------
 // Data availability labels (see planning doc §8)
@@ -37,35 +58,42 @@ export const TEAMS = {
   customers: { key: 'customers', label: 'Customers', color: 'var(--series-4)' },
 };
 
-export const COUNTRIES = [
-  { code: 'NL', name: 'Netherlands', lat: 52.2, lon: 5.4 },
-  { code: 'DE', name: 'Germany', lat: 51.0, lon: 10.2 },
-  { code: 'BE', name: 'Belgium', lat: 50.7, lon: 4.6 },
-  { code: 'GB', name: 'United Kingdom', lat: 53.0, lon: -1.8 },
-  { code: 'US', name: 'United States', lat: 39.5, lon: -98.0 },
-  { code: 'FR', name: 'France', lat: 47.0, lon: 2.5 },
-  { code: 'DK', name: 'Denmark', lat: 56.1, lon: 9.9 },
-  { code: 'AU', name: 'Australia', lat: -27.0, lon: 133.5 },
-  { code: 'CA', name: 'Canada', lat: 51.5, lon: -100.0 },
-  { code: 'SE', name: 'Sweden', lat: 60.5, lon: 16.8 },
+const COUNTRY_NAMES = {
+  NL: 'Netherlands', DE: 'Germany', BE: 'Belgium', GB: 'United Kingdom', US: 'United States', FR: 'France',
+  DK: 'Denmark', AU: 'Australia', CA: 'Canada', SE: 'Sweden', NO: 'Norway', CH: 'Switzerland', AT: 'Austria',
+  IE: 'Ireland', ES: 'Spain', NZ: 'New Zealand', LU: 'Luxembourg', GG: 'Guernsey', GF: 'French Guiana',
+  IT: 'Italy', FI: 'Finland', PL: 'Poland', PT: 'Portugal', JP: 'Japan', SG: 'Singapore',
+};
+
+// Product line is encoded in the serial number pattern; ES's numeric
+// device_type agrees (1 = M-serials, 2/5 = 00xxH-serials, 3 = T3, 4/6 = P).
+// Serials matching none of these are dev machines / test rigs and are left
+// out of the fleet.
+const SERIAL_TYPES = [
+  { re: /^T3-[0-9A-Z]{3}-[0-9A-Z]{5}$/, type: 'Tovertafel 3' },
+  { re: /^P-[0-9A-Z]{3}-[0-9A-Z]{5}$/, type: 'Pixie' },
+  { re: /^\d{4}[A-Z]\d{4}$/, type: 'Tovertafel 2' },
+  { re: /^M\d{2}H/, type: 'Tovertafel Original' },
 ];
+const typeForSerial = (s) => (SERIAL_TYPES.find(t => t.re.test(s)) || {}).type || null;
 
-export const DEVICE_TYPES = ['Tovertafel 3', 'Pixie'];
+export const DEVICE_TYPES = ['Tovertafel 2', 'Tovertafel 3', 'Tovertafel Original', 'Pixie'];
 
-export const SOFTWARE_VERSIONS = ['4.12.1', '4.12.0', '4.11.2', '4.11.0', '4.10.3', '4.9.1'];
-const SW_WEIGHTS = [0.30, 0.22, 0.18, 0.14, 0.10, 0.06];
+// Release builds only (vX.Y.Z), most widely installed, newest first.
+// SOFTWARE_VERSIONS[0] is treated as "latest" for update-adoption views.
+const stripV = (v) => v ? v.replace(/^v(?=\d)/, '') : 'unknown';
+const isRelease = (v) => /^\d+\.\d+\.\d+$/.test(v);
+const semverCmp = (a, b) => { const x = a.split('.').map(Number), y = b.split('.').map(Number); return (y[0] - x[0]) || (y[1] - x[1]) || (y[2] - x[2]); };
 
 export const SUBSCRIPTIONS = ['Base Light', 'Base Plus', 'Plus Complete', 'Light Complete'];
 
 export const GAME_CATEGORIES = ['Cognitive', 'Physical', 'Sensory', 'Social'];
 
-// Real games, categories, difficulty levels and platform availability, from
-// the Tover Game Collections Analysis workbook (Game Master List / Game Key
-// & Package List). `category` is the primary tag (categories[0]) for the
-// single-category groupings elsewhere in the app; `categories` carries the
-// full multi-tag list. `weight` derives from real tier/package-appearance
-// counts, so popularity ranking reflects actual catalogue reach, not a guess.
-export const GAMES = [
+// Curated catalogue metadata (categories, level, active/ambient, TPU), from
+// the Tover Game Collections Analysis workbook. Usage itself comes from
+// Elasticsearch; this table only supplies the descriptive fields for games
+// that can be matched to an ES game id (see CATALOGUE_BY_ES_ID).
+const CATALOGUE = [
   { id: 'g_birthday_cake', name: 'Birthday Cake', categories: ['Sensory', 'Social'], category: 'Sensory', level: 3, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 15, mostPreferred: true, leastPreferred: false, highContrast: false },
   { id: 'g_flying_saucer', name: 'Flying Saucer', categories: ['Physical', 'Social'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'active', tpu: true, weight: 11, mostPreferred: false, leastPreferred: false, highContrast: false },
   { id: 'g_bubble_bath', name: 'Bubble Bath', categories: ['Physical', 'Sensory'], category: 'Physical', level: 2, platforms: ['Pixie', 'Tovertafel'], type: 'ambient', tpu: false, weight: 11, mostPreferred: false, leastPreferred: false, highContrast: false },
@@ -116,24 +144,80 @@ export const GAMES = [
   { id: 'g_rocket_sums', name: 'Rocket Sums', categories: ['Cognitive', 'Social'], category: 'Cognitive', level: 5, platforms: ['Tovertafel'], type: 'active', tpu: true, weight: 4, mostPreferred: false, leastPreferred: true, highContrast: false },
 ];
 
-export const CUSTOMERS = [
-  { id: 'c01', name: 'Zonnehof Care Group', country: 'NL' },
-  { id: 'c02', name: 'Rivierstaete Residences', country: 'NL' },
-  { id: 'c03', name: 'Sonnenhaus Pflege', country: 'DE' },
-  { id: 'c04', name: 'Waldblick Senioren', country: 'DE' },
-  { id: 'c05', name: 'Maple Grove Care Homes', country: 'CA' },
-  { id: 'c06', name: 'Willowbrook Senior Living', country: 'US' },
-  { id: 'c07', name: 'Cedar Ridge Communities', country: 'US' },
-  { id: 'c08', name: 'Ashford Manor Group', country: 'GB' },
-  { id: 'c09', name: 'Blossom Hill Care', country: 'GB' },
-  { id: 'c10', name: 'Les Jardins de Provence', country: 'FR' },
-  { id: 'c11', name: 'Solstrand Omsorg', country: 'DK' },
-  { id: 'c12', name: 'Harbourview Aged Care', country: 'AU' },
-  { id: 'c13', name: 'Bellevue Zorggroep', country: 'BE' },
-  { id: 'c14', name: 'Fjordlys Bofellesskap', country: 'SE' },
-  { id: 'c15', name: 'Meadowlark Living', country: 'US' },
-  { id: 'c16', name: 'Kastanjehof Verpleeghuis', country: 'NL' },
+// ES game ids (generic_string, with variant prefixes/suffixes stripped) that
+// confidently match a catalogue entry. Unmatched ids are still shown with
+// their real usage, just without category/level/type.
+const CATALOGUE_BY_ES_ID = {
+  BIRTHDAY: 'g_birthday_cake', BEACHBALL: 'g_beach_ball', FISHES: 'g_fish', BUTTERFLIES: 'g_butterflies',
+  LEAVES: 'g_leaves', PAINTSPLATTERS: 'g_paint_splatters', BUBBLE_BATH: 'g_bubble_bath', HAMSTER_MAZE: 'g_hamster_maze',
+  RAINBOW: 'g_rainbow', POND: 'g_pond', PUPPIES: 'g_puppies', LADYBUGS: 'g_ladybirds', CANDYFISH: 'g_candy_fish',
+  MUSICBOX: 'g_music_box', MOLES: 'g_moles', BABY_MONSTERS: 'g_baby_monsters', MATCHMAKER: 'g_match_maker',
+  PUZZLE_TRANSPORTATION: 'g_transport_puzzle', SOCCER: 'g_soccer_match',
+};
+
+const PRETTY_NAMES = {
+  MUSICORGAN: 'Music Organ', SPINNINGTOPS: 'Spinning Tops', BIRDFEEDER: 'Bird Feeder', BLOBNOTES: 'Blob Notes',
+  COLOURMILLS: 'Colour Mills', COLOURINGBOOK: 'Colouring Book', RUMMYTILES: 'Rummy Tiles', STARSIGNS: 'Star Signs',
+  BALLGAME: 'Ball Game', HIDEANDSEEK: 'Hide and Seek', MATHRACE: 'Math Race', AIRHOCKEY: 'Air Hockey',
+  SINGALONG: 'Sing-along', WHAC_A_MOLE: 'Whac-a-Mole', EMO_QUIZ: 'Emotion Quiz', BEACHCOMBING: 'Beachcombing',
+};
+
+// Variant markers on ES game ids -> label appended to the display name.
+const VARIANT_SUFFIXES = [
+  ['_ADULTS_UGC', 'adults, custom'], ['_KIDS_UGC', 'kids, custom'], ['_UGC', 'custom'],
+  ['_ORIGINAL', 'Original'], ['_SPROUT', 'Sprout'], ['_UNQ', 'unique'], ['_UP', 'UP'],
 ];
+
+const CATALOGUE_BY_ID = Object.fromEntries(CATALOGUE.map(g => [g.id, g]));
+const titleCase = (s) => s.toLowerCase().split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+function describeEsGame(key) {
+  let base = key;
+  const variants = [];
+  if (base.startsWith('VI_')) { base = base.slice(3); variants.push('VI'); }
+  for (const [suffix, label] of VARIANT_SUFFIXES) {
+    if (base.endsWith(suffix)) { base = base.slice(0, -suffix.length); variants.push(label); break; }
+  }
+  const cat = CATALOGUE_BY_ID[CATALOGUE_BY_ES_ID[base]];
+  const baseName = cat ? cat.name : (PRETTY_NAMES[base] || titleCase(base));
+  return { cat, name: variants.length ? `${baseName} (${variants.join(', ')})` : baseName };
+}
+
+const PIXIE_DEVICE_TYPES = new Set(['4', '6']);
+
+// Every game played in the 30-day usage window, with real minutes/sessions/
+// reach. Pages use this both as the game list (filters) and the stats table.
+export const GAMES = SNAPSHOT.games30.map(r => {
+  const { cat, name } = describeEsGame(r.key);
+  const types = Object.keys(r.byDeviceType || {});
+  const platforms = [
+    ...(types.some(t => PIXIE_DEVICE_TYPES.has(t)) ? ['Pixie'] : []),
+    ...(types.some(t => !PIXIE_DEVICE_TYPES.has(t)) ? ['Tovertafel'] : []),
+  ];
+  return {
+    id: 'es_' + r.key.toLowerCase(),
+    esId: r.key,
+    catalogueId: cat ? cat.id : null,
+    name,
+    categories: cat ? cat.categories : [],
+    category: cat ? cat.category : 'Uncategorised',
+    level: cat ? cat.level : null,
+    platforms,
+    type: cat ? cat.type : null,
+    tpu: cat ? cat.tpu : false,
+    minutes: r.minutes,
+    sessions: r.sessions,
+    deviceReach: r.devices,
+    manualPct: null,
+  };
+});
+
+const GAME_NAME_BY_ES_ID = Object.fromEntries(GAMES.map(g => [g.esId, g.name]));
+export const gameName = (esId) => GAME_NAME_BY_ES_ID[esId] || (esId ? describeEsGame(esId).name : null);
+
+// -------------------------------------------------------------------------
+// Simulated per-device fields (not in Elasticsearch)
+// -------------------------------------------------------------------------
 
 // The real planned PBIT (Power-on Built-in Test) checklist, per the
 // Tovertafel knowledge base §16.
@@ -160,15 +244,6 @@ export const PBIT_CHECK_DESC = {
 
 export const HARDWARE_REVISIONS = ['Rev A', 'Rev B', 'Rev C'];
 export const BATCHES = ['2024-Q1', '2024-Q3', '2025-Q1', '2025-Q2', '2025-Q4'];
-export const DISTRIBUTORS = ['Direct (Tover)', 'CareTech Partners', 'Nordic Health Distribution', 'MedEquip Solutions'];
-// One batch/revision pairing runs hot - a deliberate "bad batch" story for
-// the Operations pattern-explorer view, not evenly-distributed noise.
-const BAD_BATCH = '2024-Q3';
-const BAD_REVISION = 'Rev B';
-
-// -------------------------------------------------------------------------
-// Devices
-// -------------------------------------------------------------------------
 
 function weightedPick(r, items, weights) {
   const total = weights.reduce((a, b) => a + b, 0);
@@ -180,144 +255,171 @@ function weightedPick(r, items, weights) {
   return items[items.length - 1];
 }
 
-function genSerial(r, type) {
-  const prefix = type === 'Pixie' ? 'PIX' : 'TT3';
-  return `${prefix}-${randInt(r, 1000, 9999)}-${randInt(r, 100, 999)}`;
+function mockPbit(r) {
+  const pbit = {};
+  const flagged = r() < 0.16 ? pick(r, PBIT_COMPONENTS) : null;
+  PBIT_COMPONENTS.forEach(c => {
+    if (c === flagged) pbit[c] = r() < 0.3 ? 'fail' : 'warning';
+    else pbit[c] = r() < 0.03 ? 'warning' : 'pass';
+  });
+  return pbit;
 }
 
-function genDevice(r, idx) {
-  const customer = pick(r, CUSTOMERS);
-  const country = COUNTRIES.find(c => c.code === customer.country);
-  const type = weightedPick(r, DEVICE_TYPES, [0.78, 0.22]);
-  const softwareVersion = weightedPick(r, SOFTWARE_VERSIONS, SW_WEIGHTS);
-  const subscription = weightedPick(r, SUBSCRIPTIONS, [0.36, 0.28, 0.22, 0.14]);
-  const hardwareRevision = weightedPick(r, HARDWARE_REVISIONS, [0.34, 0.40, 0.26]);
-  const batch = pick(r, BATCHES);
-  const distributor = weightedPick(r, DISTRIBUTORS, [0.46, 0.24, 0.16, 0.14]);
-  const badBatch = hardwareRevision === BAD_REVISION && batch === BAD_BATCH;
+// -------------------------------------------------------------------------
+// Devices (real fleet from eventlog/usagelog, plus the simulated fields above)
+// -------------------------------------------------------------------------
 
-  // last seen: most devices recently seen, long tail of stale/offline ones
-  const seenRoll = r();
-  let lastSeenMinutes;
-  if (seenRoll < 0.62) lastSeenMinutes = randInt(r, 0, 90);
-  else if (seenRoll < 0.82) lastSeenMinutes = randInt(r, 90, 60 * 24 * 3);
-  else if (seenRoll < 0.93) lastSeenMinutes = randInt(r, 60 * 24 * 3, 60 * 24 * 14);
-  else lastSeenMinutes = randInt(r, 60 * 24 * 14, 60 * 24 * 90);
+// Health thresholds on SPDLOG error lines in the last 7 days of log data.
+// Error volume is extremely skewed (a few devices log millions of lines), so
+// these sit around the fleet's 75th / 95th percentiles.
+const ERRORS_ATTENTION = 100;
+const ERRORS_ACTION = 1000;
+const OFFLINE_MINUTES = 60 * 24 * 3;
 
-  const isOffline = lastSeenMinutes > 60 * 24 * 3;
+const fleetRows = SNAPSHOT.devices
+  .map(d => ({ ...d, type: typeForSerial(d.serial) }))
+  .filter(d => d.type)
+  .sort((a, b) => a.serial.localeCompare(b.serial));
 
-  // errors / crashes skew toward a small set of unhealthy devices (realistic long tail);
-  // the bad hardware batch/revision combo runs meaningfully hotter, on purpose
-  const unluckyRoll = badBatch ? r() * 0.55 : r();
-  const errorCount7d = unluckyRoll < 0.12 ? randInt(r, 6, 22) : unluckyRoll < 0.35 ? randInt(r, 1, 5) : 0;
-  const crashCount30d = unluckyRoll < 0.08 ? randInt(r, 2, 9) : unluckyRoll < 0.25 ? randInt(r, 1, 2) : 0;
-
-  // PBIT statuses - most pass, occasional single-component flag (more likely
-  // on the bad batch, and biased toward the projector/daughterboard on it -
-  // a plausible single root cause rather than random component noise)
-  const pbit = {};
-  const flagChance = badBatch ? 0.42 : 0.16;
-  const flaggedComponent = r() < flagChance ? (badBatch && r() < 0.6 ? pick(r, ['Projector', 'Daughter Board']) : pick(r, PBIT_COMPONENTS)) : null;
-  PBIT_COMPONENTS.forEach(c => {
-    if (c === flaggedComponent) {
-      pbit[c] = r() < (badBatch ? 0.55 : 0.3) ? 'fail' : 'warning';
-    } else if (r() < 0.03) {
-      pbit[c] = 'warning';
-    } else {
-      pbit[c] = 'pass';
-    }
+// Many devices report through IPs GeoIP can't place. For those, fall back to
+// the most common real country among the same partner's devices, and mark it.
+const partnerCountry = (() => {
+  const counts = {};
+  fleetRows.forEach(d => {
+    if (!d.countryCode || !d.partner) return;
+    counts[d.partner] = counts[d.partner] || {};
+    counts[d.partner][d.countryCode] = (counts[d.partner][d.countryCode] || 0) + 1;
   });
+  return Object.fromEntries(Object.entries(counts).map(([p, c]) => [p, Object.entries(c).sort((a, b) => b[1] - a[1])[0][0]]));
+})();
 
-  // technical health derives from connectivity + errors + pbit (kept separate from usage)
+const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+const UNASSIGNED_PARTNER = 'Unassigned partner';
+
+export const DEVICES = fleetRows.map((row, idx) => {
+  const r = rng;
+  const partner = row.partner || UNASSIGNED_PARTNER;
+  const countryCode = row.countryCode || partnerCountry[row.partner] || null;
+  const lastSeenMinutes = Math.max(0, Math.round((SNAPSHOT_NOW - row.lastSeenAt) / 60000));
+  const isOffline = lastSeenMinutes > OFFLINE_MINUTES;
+
   let technicalHealth;
   if (isOffline) technicalHealth = 'offline';
-  else if (errorCount7d > 8 || crashCount30d > 3 || flaggedComponent && pbit[flaggedComponent] === 'fail') technicalHealth = 'action';
-  else if (errorCount7d > 2 || crashCount30d > 0 || flaggedComponent) technicalHealth = 'attention';
+  else if (row.errors7d >= ERRORS_ACTION) technicalHealth = 'action';
+  else if (row.errors7d >= ERRORS_ATTENTION) technicalHealth = 'attention';
   else technicalHealth = 'healthy';
 
-  // usage health is independent - a technically healthy device can be barely used
-  const usageRoll = r();
-  const minutesLast30d = usageRoll < 0.55 ? randInt(r, 900, 4200)
-    : usageRoll < 0.8 ? randInt(r, 200, 900)
-    : usageRoll < 0.94 ? randInt(r, 20, 200)
-    : randInt(r, 0, 20);
-  const sessionsLast30d = Math.round(minutesLast30d / randFloat(r, 4.6, 6.2, 1));
+  const minutesLast30d = row.minutes30;
   let usageHealth;
   if (minutesLast30d >= 900) usageHealth = 'active';
   else if (minutesLast30d >= 200) usageHealth = 'light';
   else if (minutesLast30d >= 20) usageHealth = 'quiet';
   else usageHealth = 'dormant';
 
-  const trend7d = Array.from({ length: 7 }, () => randInt(r, 20, 240));
-
-  const geoJitter = () => randFloat(r, -3.4, 3.4, 2);
-
   return {
     id: `d${idx}`,
-    serial: genSerial(r, type),
-    type,
-    customer: customer.name,
-    customerId: customer.id,
-    country: country.name,
-    countryCode: country.code,
-    geo: { lat: clamp(country.lat + geoJitter(), -85, 85), lon: clamp(country.lon + geoJitter() * 1.6, -179, 179) },
-    softwareVersion,
-    subscription,
-    hardwareRevision,
-    batch,
-    distributor,
+    serial: row.serial,
+    type: row.type,
+    customer: partner,
+    customerId: 'p_' + slug(partner),
+    distributor: partner,
+    country: countryCode ? (COUNTRY_NAMES[countryCode] || countryCode) : 'Unknown',
+    countryCode: countryCode || 'XX',
+    countryInferred: !row.countryCode && !!countryCode,
+    city: row.city,
+    geo: row.lat != null && row.lon != null ? { lat: row.lat, lon: row.lon } : null,
+    softwareVersion: stripV(row.softwareVersion),
     lastSeenMinutes,
     isOffline,
-    installedAt: daysAgo(randInt(r, 30, 1100)),
-    errorCount7d,
-    crashCount30d,
-    pbit,
+    installedAt: null,
+    errorCount7d: row.errors7d,
+    errorCount30d: row.errors30d,
+    topError: row.topError,
+    firstErrorAt: row.firstErrorAt ? new Date(row.firstErrorAt) : null,
+    crashCount30d: null,
+    restarts30d: row.startups30,
     technicalHealth,
     usageHealth,
     minutesLast30d,
-    sessionsLast30d,
-    trend7d,
-    currentGame: !isOffline && lastSeenMinutes < 20 ? pick(r, GAMES).name : null,
+    sessionsLast30d: row.sessions30,
+    activeDays30: row.activeDays30,
+    minutesLast15d: row.minutesLast15,
+    minutesPrev15d: row.minutesPrev15,
+    trend7d: row.trend7d,
+    currentGame: null,
+    // simulated - no source in Elasticsearch
+    subscription: weightedPick(r, SUBSCRIPTIONS, [0.36, 0.28, 0.22, 0.14]),
+    hardwareRevision: weightedPick(r, HARDWARE_REVISIONS, [0.34, 0.40, 0.26]),
+    batch: pick(r, BATCHES),
+    pbit: mockPbit(r),
   };
-}
+});
 
-export const DEVICES = Array.from({ length: 1291 }, (_, i) => genDevice(rng, i));
+const DEVICE_BY_SERIAL = Object.fromEntries(DEVICES.map(d => [d.serial, d]));
+
+export const SOFTWARE_VERSIONS = (() => {
+  const counts = {};
+  DEVICES.forEach(d => { if (isRelease(d.softwareVersion)) counts[d.softwareVersion] = (counts[d.softwareVersion] || 0) + 1; });
+  return Object.entries(counts).filter(([, n]) => n >= 10).map(([v]) => v).sort(semverCmp);
+})();
+
+export const COUNTRIES = (() => {
+  const byCode = {};
+  DEVICES.forEach(d => {
+    if (d.countryCode === 'XX') return;
+    const c = byCode[d.countryCode] || (byCode[d.countryCode] = { code: d.countryCode, name: d.country, n: 0, lat: 0, lon: 0, geoN: 0 });
+    c.n++;
+    if (d.geo && !d.countryInferred) { c.lat += d.geo.lat; c.lon += d.geo.lon; c.geoN++; }
+  });
+  return Object.values(byCode)
+    .sort((a, b) => b.n - a.n)
+    .map(c => ({ code: c.code, name: c.name, lat: c.geoN ? c.lat / c.geoN : null, lon: c.geoN ? c.lon / c.geoN : null }));
+})();
+
+// Partners (distributors / account holders) are the closest thing to a
+// "customer" Elasticsearch knows about - care-home level mapping lives
+// outside ES and still needs integration.
+export const CUSTOMERS = (() => {
+  const byId = {};
+  DEVICES.forEach(d => {
+    const c = byId[d.customerId] || (byId[d.customerId] = { id: d.customerId, name: d.customer, n: 0, countries: {} });
+    c.n++;
+    if (d.countryCode !== 'XX') c.countries[d.countryCode] = (c.countries[d.countryCode] || 0) + 1;
+  });
+  return Object.values(byId).sort((a, b) => b.n - a.n).map(c => ({
+    id: c.id, name: c.name, country: (Object.entries(c.countries).sort((a, b) => b[1] - a[1])[0] || ['XX'])[0],
+  }));
+})();
+
+export const DISTRIBUTORS = CUSTOMERS.map(c => c.name);
 
 // -------------------------------------------------------------------------
-// Usage timeseries (90 days)
+// Usage timeseries (90 days, real)
 // -------------------------------------------------------------------------
 
 export const USAGE_DAYS = 90;
 
 export const USAGE_TIMESERIES = (() => {
+  const byDate = Object.fromEntries(SNAPSHOT.usageDaily.map(r => [r.date, r]));
   const out = [];
-  let base = 5200;
+  const end = DATA_WINDOW.usageTo;
   for (let i = USAGE_DAYS - 1; i >= 0; i--) {
-    const date = daysAgo(i);
-    const dow = date.getDay();
-    const weekendDip = (dow === 0 || dow === 6) ? 0.86 : 1;
-    const seasonal = 1 + 0.12 * Math.sin((USAGE_DAYS - i) / 14);
-    const noise = randFloat(rng, 0.88, 1.12, 3);
-    const minutes = Math.round(base * weekendDip * seasonal * noise);
-    const sessions = Math.round(minutes / randFloat(rng, 4.7, 5.8, 1));
-    out.push({ date, minutes, sessions });
-    base += randFloat(rng, -20, 34, 1);
+    const date = new Date(end.getFullYear(), end.getMonth(), end.getDate() - i);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const row = byDate[key];
+    out.push({ date, minutes: row ? row.minutes : 0, sessions: row ? row.sessions : 0, devices: row ? row.devices : 0 });
   }
   return out;
 })();
 
 // -------------------------------------------------------------------------
-// Game-level aggregates
+// Game-level aggregates (real, last 30 days of usage data)
 // -------------------------------------------------------------------------
 
-export const GAME_STATS = GAMES.map(g => {
-  const minutes = Math.round(g.weight * randFloat(rng, 850, 1250, 0) + randInt(rng, -400, 400));
-  const sessions = Math.round(minutes / randFloat(rng, 4.6, 6.2, 1));
-  const deviceReach = clamp(Math.round(g.weight * randFloat(rng, 4.2, 6, 1)), 8, 140);
-  const manualPct = clamp(Math.round(randFloat(rng, 35, 80, 0) + (g.type === 'active' ? 8 : -8)), 15, 92);
-  return { ...g, minutes: Math.max(120, minutes), sessions: Math.max(20, sessions), deviceReach, manualPct };
-}).sort((a, b) => b.minutes - a.minutes);
+export const GAME_STATS = [...GAMES].sort((a, b) => b.minutes - a.minutes);
 
+// Categories come from the curated catalogue, so they only cover games that
+// matched it; CATEGORY_COVERAGE says how much of all play that is.
 export const CATEGORY_STATS = GAME_CATEGORIES.map(cat => {
   const games = GAME_STATS.filter(g => g.category === cat);
   return {
@@ -326,12 +428,20 @@ export const CATEGORY_STATS = GAME_CATEGORIES.map(cat => {
     sessions: games.reduce((s, g) => s + g.sessions, 0),
     gameCount: games.length,
   };
-}).sort((a, b) => b.minutes - a.minutes);
+}).filter(c => c.gameCount > 0).sort((a, b) => b.minutes - a.minutes);
+
+export const CATEGORY_COVERAGE = (() => {
+  const total = GAME_STATS.reduce((s, g) => s + g.minutes, 0);
+  const categorised = CATEGORY_STATS.reduce((s, c) => s + c.minutes, 0);
+  return total > 0 ? Math.round((categorised / total) * 100) : 0;
+})();
+
+export const USAGE_BY_HOUR = SNAPSHOT.hours;
 
 // -------------------------------------------------------------------------
-// Interaction / effort concepts (Page 3) - explicitly mocked. TPU hand
-// counts only apply to TPU-enabled games; ambient games intentionally
-// score low on motion without that meaning low engagement.
+// Interaction / effort concepts (Page 3) - explicitly mocked, on the curated
+// catalogue. TPU hand counts only apply to TPU-enabled games; ambient games
+// intentionally score low on motion without that meaning low engagement.
 // -------------------------------------------------------------------------
 
 // Effort is only scored for active games, and is derived from hands: average
@@ -339,7 +449,7 @@ export const CATEGORY_STATS = GAME_CATEGORIES.map(cat => {
 // games get no effort score (their value is not in how much people move).
 export const EFFORT_REFERENCE_HANDS = 4;
 
-export const INTERACTION_STATS = GAMES.map(g => {
+export const INTERACTION_STATS = CATALOGUE.map(g => {
   const motion = g.type === 'active'
     ? clamp(Math.round(randFloat(rng, 45, 92, 0)), 0, 100)
     : clamp(Math.round(randFloat(rng, 5, 30, 0)), 0, 100);
@@ -366,7 +476,8 @@ export function levelEffort(stats = INTERACTION_STATS) {
 }
 
 // -------------------------------------------------------------------------
-// Game selection journey / funnel
+// Game selection journey / funnel (simulated - menu events don't map 1:1
+// onto these steps yet)
 // -------------------------------------------------------------------------
 
 export const SELECTION_FUNNEL = [
@@ -382,76 +493,61 @@ export const SELECTION_FUNNEL = [
 // records after cleaning were flagged handpicked. The remainder isn't
 // currently split between shuffle and un-flagged manual browsing - that's a
 // real, confirmed gap, not an estimate we're choosing not to show.
+// (In the 31 Aug - 29 Sep window only ~0.6% of GAME_STARTs carry the flag at
+// all, too sparse to replace the audited figure.)
 export const SELECTION_SOURCE = [
   { source: 'Handpicked (confirmed)', pct: 6.2 },
   { source: 'Not flagged handpicked (shuffle or manual - not yet distinguished)', pct: 93.8 },
 ];
 
 // -------------------------------------------------------------------------
-// Live feed / world view
+// Live feed / world view (real snapshot)
 // -------------------------------------------------------------------------
 
+const FEED_KIND = { GAME_START: 'start', GAME_END: 'end', VPN_CONNECT: 'reconnect', STARTUP: 'reconnect', VPN_DISCONNECT: 'offline', SHUTDOWN: 'offline' };
+
+// Most recent lifecycle event per device at snapshot time (newest first).
 export function generateLiveFeed(n = 14) {
-  const r = makeRng(Date.now() % 100000 + 7);
-  const events = [];
-  const kinds = ['start', 'end', 'reconnect', 'offline'];
-  for (let i = 0; i < n; i++) {
-    const device = pick(r, DEVICES);
-    const kind = weightedPick(r, kinds, [0.46, 0.30, 0.16, 0.08]);
-    const game = pick(r, GAMES);
-    events.push({
-      id: `ev${i}`,
-      kind,
-      device,
-      game: game.name,
-      time: minutesAgo(randInt(r, 0, 240)),
-    });
-  }
-  return events.sort((a, b) => b.time - a.time);
+  return SNAPSHOT.feed
+    .filter(e => DEVICE_BY_SERIAL[e.serial] && FEED_KIND[e.event])
+    .slice(0, n)
+    .map((e, i) => ({ id: `ev${i}`, kind: FEED_KIND[e.event], device: DEVICE_BY_SERIAL[e.serial], game: gameName(e.game), time: new Date(e.time) }));
 }
 
+// "Active" = sent any event (PING included) in the last 15 minutes before
+// the snapshot - online, not necessarily mid-session.
 export function currentlyActiveDevices() {
   return DEVICES.filter(d => !d.isOffline && d.lastSeenMinutes < 15);
 }
 
-export function topGamesRightNow(r = rng) {
-  const active = currentlyActiveDevices();
-  const counts = {};
-  active.forEach(d => {
-    const g = d.currentGame || pick(r, GAMES).name;
-    counts[g] = (counts[g] || 0) + 1;
-  });
-  return Object.entries(counts)
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 8);
+// Live per-device game state isn't in ES, so this is the most-played games
+// on the last full day of usage data instead.
+export function topGamesRightNow() {
+  return SNAPSHOT.gamesLastDay.slice(0, 8).map(g => ({ name: gameName(g.key), count: g.sessions }));
 }
 
-// Baseline derived from the usage-data audit: 827,500 events across 1,291
-// devices over the 28 Jun - 1 Sep 2026 window (~9.85 events/device/day),
-// matching this fleet's device count directly.
-export const EVENT_VOLUME = (() => {
-  const out = [];
-  let base = 12720;
-  for (let i = 29; i >= 0; i--) {
-    const date = daysAgo(i);
-    const noise = randFloat(rng, 0.9, 1.1, 3);
-    out.push({ date, events: Math.round(base * noise), missingFields: Math.round(base * noise * randFloat(rng, 0.004, 0.02, 4)) });
-    base += randFloat(rng, -105, 155, 0);
-  }
-  return out;
-})();
+// Daily event volume across eventlog-*; missingFields = events without a
+// serial or software version.
+export const EVENT_VOLUME = SNAPSHOT.eventsDaily.map(r => ({ date: localDate(r.date), events: r.events, missingFields: r.missing, devices: r.devices }));
 
-export const ERRORS_BY_VERSION = SOFTWARE_VERSIONS.map((v, i) => ({
-  version: v,
-  errors: Math.round(randFloat(rng, 40, 90, 0) * SW_WEIGHTS[i] * 6),
-  crashes: Math.round(randFloat(rng, 4, 14, 0) * SW_WEIGHTS[i] * 6),
-  pbitFailures: Math.round(randFloat(rng, 2, 9, 0) * SW_WEIGHTS[i] * 6),
-}));
+// Errors = SPDLOG error lines (real). Crash and PBIT counts aren't in ES yet,
+// so those two columns remain simulated.
+export const ERRORS_BY_VERSION = SNAPSHOT.errorsByVersion
+  .filter(r => r.version !== 'null')
+  .slice(0, 8)
+  .map(r => ({
+    version: stripV(r.version),
+    errors: r.errors,
+    errorDevices: r.devices,
+    crashes: randInt(rng, 2, 40),
+    pbitFailures: randInt(rng, 1, 25),
+  }));
+
+export const ERROR_MESSAGES = SNAPSHOT.errorMessages;
 
 // -------------------------------------------------------------------------
-// Operations - fleet-wide PBIT breakdown, remote actions, recurring issues,
-// and failure grouping by hardware revision / batch / distributor
+// Operations - fleet-wide PBIT breakdown (simulated), remote actions
+// (simulated), recurring issues (real), failure grouping
 // -------------------------------------------------------------------------
 
 export const PBIT_FLEET_STATS = PBIT_COMPONENTS.map(c => {
@@ -477,20 +573,17 @@ export const REMOTE_ACTIONS = (() => {
   });
 })();
 
-export const RECURRING_ISSUES = (() => {
-  const r = makeRng(5510);
-  return DEVICES.filter(d => d.errorCount7d > 5 || d.crashCount30d > 2 || Object.values(d.pbit).includes('fail'))
-    .slice(0, 18)
-    .map(d => ({
-      device: d,
-      pattern: d.crashCount30d > 2
-        ? `${d.crashCount30d} crash/freeze events in 30 days - recurring, not one-off`
-        : Object.values(d.pbit).includes('fail')
-          ? `Repeated PBIT state change on ${PBIT_COMPONENTS.find(c => d.pbit[c] === 'fail')}`
-          : `${d.errorCount7d} errors in 7 days, trending up week over week`,
-      firstSeen: daysAgo(randInt(r, 14, 60)),
-    }));
-})();
+const shorten = (s, n = 90) => s && s.length > n ? s.slice(0, n - 1) + '…' : s;
+
+export const RECURRING_ISSUES = DEVICES
+  .filter(d => d.errorCount7d >= ERRORS_ACTION && !d.isOffline)
+  .sort((a, b) => b.errorCount7d - a.errorCount7d)
+  .slice(0, 18)
+  .map(d => ({
+    device: d,
+    pattern: `${d.errorCount7d.toLocaleString()} error lines in 7 days - mostly "${shorten(d.topError)}"`,
+    firstSeen: d.firstErrorAt || DATA_WINDOW.usage30From,
+  }));
 
 function groupFailures(keyFn) {
   const groups = {};
@@ -507,7 +600,7 @@ function groupFailures(keyFn) {
 
 export const FAILURE_BY_BATCH = groupFailures(d => d.batch).sort((a, b) => a.key.localeCompare(b.key));
 export const FAILURE_BY_REVISION = groupFailures(d => d.hardwareRevision).sort((a, b) => a.key.localeCompare(b.key));
-export const FAILURE_BY_DISTRIBUTOR = groupFailures(d => d.distributor).sort((a, b) => b.failureRate - a.failureRate);
+export const FAILURE_BY_DISTRIBUTOR = groupFailures(d => d.distributor).filter(g => g.deviceCount >= 5).sort((a, b) => b.failureRate - a.failureRate);
 
 // -------------------------------------------------------------------------
 // Commerce - customer/fleet value, reliability & adoption
@@ -517,6 +610,8 @@ export const CUSTOMER_VALUE = CUSTOMERS.map(c => {
   const devs = DEVICES.filter(d => d.customerId === c.id);
   const minutes = devs.reduce((s, d) => s + d.minutesLast30d, 0);
   const sessions = devs.reduce((s, d) => s + d.sessionsLast30d, 0);
+  const last15 = devs.reduce((s, d) => s + d.minutesLast15d, 0);
+  const prev15 = devs.reduce((s, d) => s + d.minutesPrev15d, 0);
   const activeDevices = devs.filter(d => d.usageHealth === 'active' || d.usageHealth === 'light').length;
   return {
     ...c,
@@ -524,15 +619,16 @@ export const CUSTOMER_VALUE = CUSTOMERS.map(c => {
     minutes,
     sessions,
     activeDevices,
-    engagementTrend: randFloat(rng, -8, 15, 1),
+    // last 15 days vs the 15 before, within the 30-day usage window
+    engagementTrend: prev15 > 0 ? ((last15 - prev15) / prev15) * 100 : 0,
     subscriptionMix: [...new Set(devs.map(d => d.subscription))],
   };
 }).filter(c => c.deviceCount > 0).sort((a, b) => b.minutes - a.minutes);
 
 export const RELIABILITY_BY_TYPE = DEVICE_TYPES.map(t => {
   const devs = DEVICES.filter(d => d.type === t);
-  const onlineRate = (devs.filter(d => d.lastSeenMinutes < 60 * 24).length / devs.length) * 100;
-  const upToDateRate = (devs.filter(d => d.softwareVersion === SOFTWARE_VERSIONS[0]).length / devs.length) * 100;
+  const onlineRate = devs.length ? (devs.filter(d => d.lastSeenMinutes < 60 * 24).length / devs.length) * 100 : 0;
+  const upToDateRate = devs.length ? (devs.filter(d => d.softwareVersion === SOFTWARE_VERSIONS[0]).length / devs.length) * 100 : 0;
   return { type: t, count: devs.length, onlineRate: Math.round(onlineRate), upToDateRate: Math.round(upToDateRate) };
 });
 
@@ -542,17 +638,12 @@ export const UPTIME_TREND = Array.from({ length: 12 }, (_, i) => ({
 }));
 
 // -------------------------------------------------------------------------
-// Operations - error/crash timeline (daily, 30 days)
+// Operations - error timeline (daily, real SPDLOG lines; crashes simulated)
 // -------------------------------------------------------------------------
 
-export const ERROR_TIMELINE = (() => {
-  const out = [];
-  let base = 34;
-  for (let i = 29; i >= 0; i--) {
-    const date = daysAgo(i);
-    const noise = randFloat(rng, 0.75, 1.3, 3);
-    out.push({ date, errors: Math.max(0, Math.round(base * noise)), crashes: Math.max(0, Math.round(base * noise * 0.22)) });
-    base += randFloat(rng, -3, 4, 1);
-  }
-  return out;
-})();
+export const ERROR_TIMELINE = SNAPSHOT.errorsDaily.map(r => ({
+  date: localDate(r.date),
+  errors: r.errors,
+  errorDevices: r.devices,
+  crashes: randInt(rng, 0, 6),
+}));

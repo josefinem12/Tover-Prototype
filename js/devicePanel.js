@@ -35,17 +35,17 @@ function pbitStatusLabel(s) {
 export function renderDevicePanel(device) {
   if (!device) return '';
   const dayLabels = ['6d ago', '5d', '4d', '3d', '2d', 'Yest.', 'Today'];
-  const errorEvents = device.errorCount7d > 0
-    ? Array.from({ length: Math.min(device.errorCount7d, 5) }, (_, i) => `
+  const errorEvents = device.errorCount30d > 0
+    ? `
         <div class="feed-item">
           <span class="feed-dot" style="background:var(--status-critical)"></span>
           <div class="feed-main">
-            <div class="feed-title">Runtime error logged</div>
-            <div class="feed-meta">Session interrupted · auto-recovered</div>
+            <div class="feed-title">Most frequent error line</div>
+            <div class="feed-meta mono" style="word-break:break-word">${esc(device.topError || '-')}</div>
           </div>
-          <div class="feed-time">${i + 1}d ago</div>
-        </div>`).join('')
-    : `<div class="empty-state">No errors logged in the last 7 days.</div>`;
+          <div class="feed-time">${device.firstErrorAt ? 'since ' + fmtDateTime(device.firstErrorAt) : ''}</div>
+        </div>`
+    : `<div class="empty-state">No SPDLOG errors logged in the 30-day window.</div>`;
 
   const pbitGrid = PBIT_COMPONENTS.map(c => `
     <div class="pbit-item" data-tt="${esc(pbitStatusLabel(device.pbit[c]))} - check: ${esc(PBIT_CHECK_DESC[c] || c)}">
@@ -63,25 +63,25 @@ export function renderDevicePanel(device) {
       <div class="flex items-center gap-2 mt-2" style="flex-wrap:wrap">
         ${statusBadge(device.technicalHealth)}
         ${statusBadge(device.usageHealth)}
-        <span class="helper-text">${esc(device.country)}</span>
+        <span class="helper-text">${esc(device.country)}${device.countryInferred ? " (inferred from partner)" : device.city ? " · " + esc(device.city) : ""}</span>
       </div>
     </div>
     <div class="side-panel-body">
 
       <div class="kv-grid">
         <div class="kv-item"><div class="k">Device type</div><div class="v">${esc(device.type)}</div></div>
-        <div class="kv-item"><div class="k">Subscription</div><div class="v">${esc(device.subscription)}</div></div>
+        <div class="kv-item"><div class="k">Subscription (simulated)</div><div class="v">${esc(device.subscription)}</div></div>
         <div class="kv-item"><div class="k">Software version</div><div class="v">${esc(device.softwareVersion)}</div></div>
-        <div class="kv-item"><div class="k">Installed</div><div class="v">${fmtDateTime(device.installedAt)}</div></div>
+        <div class="kv-item"><div class="k">Days played (30d)</div><div class="v">${fmtNum(device.activeDays30)}</div></div>
         <div class="kv-item"><div class="k">Last seen</div><div class="v">${esc(timeAgo(device.lastSeenMinutes === 0 ? new Date() : new Date(Date.now() - device.lastSeenMinutes * 60000)))}</div></div>
-        <div class="kv-item"><div class="k">Currently playing</div><div class="v">${device.currentGame ? esc(device.currentGame) : 'Idle - no active session'}</div></div>
+        <div class="kv-item"><div class="k">Restarts (30d)</div><div class="v">${fmtNum(device.restarts30d)}</div></div>
       </div>
 
       <hr class="hairline" />
 
       <div>
         <div class="flex items-center justify-between">
-          <h3 style="font-size:12.5px;font-weight:700">Usage, last 7 days</h3>
+          <h3 style="font-size:12.5px;font-weight:700">Usage, last 7 days of data</h3>
           ${availPill('available')}
         </div>
         <div class="flex items-center gap-3 mt-2">
@@ -108,7 +108,7 @@ export function renderDevicePanel(device) {
       <div>
         <div class="flex items-center justify-between">
           <h3 style="font-size:12.5px;font-weight:700">Recent errors</h3>
-          <span class="helper-text">${device.errorCount7d} in 7d · ${device.crashCount30d} crash/freeze in 30d</span>
+          <span class="helper-text">${fmtNum(device.errorCount7d)} in 7d · ${fmtNum(device.errorCount30d)} in 30d (SPDLOG lines)</span>
         </div>
         <div class="feed-list mt-2">${errorEvents}</div>
       </div>

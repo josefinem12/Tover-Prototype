@@ -6,7 +6,7 @@
 // same underlying signals, no new data.
 // =========================================================================
 
-import { esc, fmtNum, fmtMinutes, fmtCompact, fmtPct, fmtDate } from '../utils.js';
+import { esc, fmtNum, fmtMinutes, fmtCompact, fmtPct, fmtDate, timeAgo } from '../utils.js';
 import {
   renderTeamPage, filterSelect, filterResetButton, kpiCard,
   cardHead, tabGroup, availPill, statusBadge, mountDataTable, legend,
@@ -24,9 +24,6 @@ export const TABS = [
   { key: 'highlights', label: 'Highlights For You' },
   { key: 'wrapped', label: 'Wrapped / Fleet Insights' },
 ];
-
-function hashCode(str) { let h = 0; for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0; return Math.abs(h); }
-function favoriteGame(d) { return GAMES[hashCode(d.id) % GAMES.length]; }
 
 const FRIENDLY_STATUS = {
   healthy: 'Working well',
@@ -70,7 +67,7 @@ function renderDevices(state) {
     desc: 'A per-device report a care home could see about their own fleet, without the internal engineering detail.',
     sharedWith: 'A reframed, simplified version of Product\'s Device & Fleet Health and Operations\' Device Health Monitor.',
     filtersHtml: `
-      ${filterSelect('customer', 'Care home', [{ value: 'all', label: 'All care homes (preview)' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
+      ${filterSelect('customer', 'Partner', [{ value: 'all', label: 'All partners (preview)' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
       ${filterSelect('deviceType', 'Product', [{ value: 'all', label: 'All products' }, ...DEVICE_TYPES.map(d => ({ value: d, label: d }))], f.deviceType)}
       ${filterResetButton()}
     `,
@@ -87,9 +84,9 @@ function mountDevices(root, state) {
     columns: [
       { key: 'serial', label: 'Tovertafel', render: (r) => `<span class="mono">${esc(r.serial)}</span>` },
       { key: 'type', label: 'Product' },
-      { key: 'installedAt', label: 'Installed', render: (r) => fmtDate(r.installedAt, { year: 'numeric', month: 'short', day: 'numeric' }) },
+      { key: 'lastSeenMinutes', label: 'Last seen', render: (r) => timeAgo(new Date(Date.now() - r.lastSeenMinutes * 60000)) },
       { key: 'minutesLast30d', label: 'Minutes played', align: 'right', render: (r) => fmtMinutes(r.minutesLast30d) },
-      { key: 'favoriteGame', label: 'Favourite game', sortValue: (r) => favoriteGame(r).name, render: (r) => esc(favoriteGame(r).name) },
+      { key: 'activeDays30', label: 'Days played (30d)', align: 'right', render: (r) => fmtNum(r.activeDays30) },
       { key: 'technicalHealth', label: 'Status', render: (r) => statusBadge(r.technicalHealth, FRIENDLY_STATUS[r.technicalHealth]) },
     ],
   });
@@ -114,19 +111,19 @@ function renderCareHomes(state) {
 
   const body = `
     <div class="grid grid-kpi">
-      ${kpiCard({ label: 'Care homes represented', value: fmtNum(rows.length) })}
-      ${kpiCard({ label: 'Tovertafels across these homes', value: fmtNum(totalDevices) })}
+      ${kpiCard({ label: 'Partners represented', value: fmtNum(rows.length) })}
+      ${kpiCard({ label: 'Devices across these partners', value: fmtNum(totalDevices) })}
       ${kpiCard({ label: 'Minutes played', value: fmtCompact(totalMinutes), sub: 'last 30 days' })}
       ${kpiCard({ label: 'Engagement trend', value: `${avgEngagement >= 0 ? '+' : ''}${avgEngagement.toFixed(1)}%`, sub: 'vs prior period' })}
     </div>
 
     <div class="grid grid-12">
       <div class="card span-7">
-        ${cardHead('Minutes played by care home', 'Last 30 days', availPill('integration'))}
-        ${fleetItems.length ? hBarChart({ items: fleetItems, formatValue: (v) => fmtCompact(v) + ' min' }) : `<div class="empty-state">No care homes match this filter.</div>`}
+        ${cardHead('Minutes played by partner', 'Last 30 days of usage data - care-home level mapping needs integration', availPill('integration'))}
+        ${fleetItems.length ? hBarChart({ items: fleetItems, formatValue: (v) => fmtCompact(v) + ' min' }) : `<div class="empty-state">No partners match this filter.</div>`}
       </div>
       <div class="card span-5">
-        ${cardHead('Minutes played by product', 'Tovertafel 3 vs. Pixie', availPill('available'))}
+        ${cardHead('Minutes played by product', 'By product line, last 30 days of usage data', availPill('available'))}
         <div class="flex items-center gap-4" style="flex-wrap:wrap">
           ${donutChart({ items: byProduct, formatValue: (v) => fmtCompact(v) + ' min' })}
           <div style="flex:1;min-width:150px">${legend(byProduct)}</div>
@@ -136,7 +133,7 @@ function renderCareHomes(state) {
 
     <div class="card">
       <div class="flex items-center justify-between" style="margin-bottom:4px">
-        <div class="titles"><h3 style="font-size:13.5px;font-weight:700">Care home report</h3><div class="card-sub">One row per care home / fleet, ready to share back</div></div>
+        <div class="titles"><h3 style="font-size:13.5px;font-weight:700">Partner report</h3><div class="card-sub">One row per partner / fleet - care-home level once that mapping is integrated</div></div>
         ${availPill('definition')}
       </div>
       <div data-table-mount="carehomes"></div>
@@ -146,10 +143,10 @@ function renderCareHomes(state) {
   return renderTeamPage(TABS, state, {
     eyebrow: 'Customers · Dashboard B',
     title: 'Care Home Reports',
-    desc: 'Usage and engagement rolled up per care home / fleet, and per product line.',
+    desc: 'Usage and engagement rolled up per partner / fleet, and per product line.',
     sharedWith: 'The same underlying data as Commerce\'s Customer & Fleet Value dashboard, reframed for the care home itself.',
     filtersHtml: `
-      ${filterSelect('customer', 'Care home', [{ value: 'all', label: 'All care homes' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
+      ${filterSelect('customer', 'Partner', [{ value: 'all', label: 'All partners' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
       ${filterSelect('country', 'Country', [{ value: 'all', label: 'All countries' }, ...COUNTRIES.map(c => ({ value: c.code, label: c.name }))], f.country)}
       ${filterResetButton()}
     `,
@@ -161,9 +158,9 @@ function mountCareHomes(root, state) {
   const f = state.filters;
   const rows = CUSTOMER_VALUE.filter(c => (f.customer === 'all' || c.id === f.customer) && (f.country === 'all' || c.country === f.country));
   mountDataTable(root, 'carehomes', {
-    rows, rowKey: 'id', searchFields: ['name', 'country'], searchPlaceholder: 'Search care home…', defaultSort: { col: 'minutes', dir: 'desc' },
+    rows, rowKey: 'id', searchFields: ['name', 'country'], searchPlaceholder: 'Search partner…', defaultSort: { col: 'minutes', dir: 'desc' },
     columns: [
-      { key: 'name', label: 'Care home / fleet' },
+      { key: 'name', label: 'Partner / fleet' },
       { key: 'country', label: 'Country' },
       { key: 'deviceCount', label: 'Tovertafels', align: 'right', render: (r) => fmtNum(r.deviceCount) },
       { key: 'minutes', label: 'Minutes (30d)', align: 'right', render: (r) => fmtCompact(r.minutes) },
@@ -261,7 +258,7 @@ function renderWrapped(state) {
     filtersHtml: `
       ${filterSelect('category', 'Game category', [{ value: 'all', label: 'All categories' }, ...GAME_CATEGORIES.map(c => ({ value: c, label: c }))], f.category)}
       ${filterSelect('game', 'Game', [{ value: 'all', label: 'All games' }, ...GAMES.map(g => ({ value: g.id, label: g.name }))], f.game)}
-      ${filterSelect('customer', 'Care home', [{ value: 'all', label: 'All care homes' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
+      ${filterSelect('customer', 'Partner', [{ value: 'all', label: 'All partners' }, ...CUSTOMERS.map(c => ({ value: c.id, label: c.name }))], f.customer)}
       ${filterResetButton()}
     `,
     bodyHtml: body,

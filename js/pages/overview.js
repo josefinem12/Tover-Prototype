@@ -1,7 +1,7 @@
-import { esc, fmtNum, fmtCompact, fmtPct } from '../utils.js';
+import { esc, fmtNum, fmtCompact, fmtPct, fmtDate, fmtDateTime } from '../utils.js';
 import { renderPageHeader, availPill, kpiCard } from '../components.js';
 import { icon } from '../icons.js';
-import { TEAMS, DATA_STATUS, USAGE_TIMESERIES, GAME_STATS, DEVICES, ERRORS_BY_VERSION, UPTIME_TREND, CUSTOMER_VALUE, currentlyActiveDevices } from '../data.js';
+import { TEAMS, DATA_STATUS, USAGE_TIMESERIES, GAME_STATS, DEVICES, ERROR_TIMELINE, UPTIME_TREND, CUSTOMER_VALUE, DATA_WINDOW, currentlyActiveDevices } from '../data.js';
 import { TABS as RD_TABS } from '../teams/rd.js';
 import { TABS as PRODUCT_TABS } from '../teams/product.js';
 import { TABS as COMMERCE_TABS } from '../teams/commerce.js';
@@ -11,11 +11,11 @@ import { TABS as CUSTOMERS_TABS } from '../teams/customers.js';
 
 const TEAM_CARDS = [
   { key: 'rd', icon: 'search', tabs: RD_TABS, stat: () => `${fmtCompact(USAGE_TIMESERIES.slice(-30).reduce((s, r) => s + r.minutes, 0))} min played · ${GAME_STATS.length} games tracked` },
-  { key: 'product', icon: 'world', tabs: PRODUCT_TABS, stat: () => `${fmtNum(currentlyActiveDevices().length)} devices active right now` },
+  { key: 'product', icon: 'world', tabs: PRODUCT_TABS, stat: () => `${fmtNum(currentlyActiveDevices().length)} devices online at snapshot` },
   { key: 'commerce', icon: 'briefcase', tabs: COMMERCE_TABS, stat: () => `${fmtNum(DEVICES.length)} devices across the fleet` },
-  { key: 'customers', icon: 'home', tabs: CUSTOMERS_TABS, stat: () => `${fmtNum(CUSTOMER_VALUE.length)} care homes with a live report` },
+  { key: 'customers', icon: 'home', tabs: CUSTOMERS_TABS, stat: () => `${fmtNum(CUSTOMER_VALUE.length)} partners with a live report` },
   { key: 'ops', icon: 'wrench', tabs: OPS_TABS, stat: () => `${fmtNum(DEVICES.filter(d => d.technicalHealth === 'action').length)} devices need action` },
-  { key: 'software', icon: 'terminal', tabs: SOFTWARE_TABS, stat: () => `${fmtNum(ERRORS_BY_VERSION.reduce((s, r) => s + r.errors, 0))} errors / 30d` },
+  { key: 'software', icon: 'terminal', tabs: SOFTWARE_TABS, stat: () => `${fmtCompact(ERROR_TIMELINE.reduce((s, r) => s + r.errors, 0))} error lines / 30d` },
 ];
 
 const RULES = [
@@ -27,25 +27,25 @@ const RULES = [
 ];
 
 export function render() {
-  const countryCount = new Set(DEVICES.map(d => d.countryCode)).size;
+  const countryCount = new Set(DEVICES.map(d => d.countryCode).filter(c => c !== 'XX')).size;
   const minutesLast30d = USAGE_TIMESERIES.slice(-30).reduce((s, r) => s + r.minutes, 0);
   const avgUptime = UPTIME_TREND.slice(-4).reduce((s, r) => s + r.uptime, 0) / UPTIME_TREND.slice(-4).length;
 
   return `
     ${renderPageHeader({
       title: 'Tover Insights',
-      desc: 'Pick a team on the left. Each one opens straight to its own dashboards, filters and drill-downs.',
+      desc: `Pick a team on the left. Real figures come from an Elasticsearch snapshot taken ${fmtDateTime(DATA_WINDOW.snapshotAt)}; game usage runs through ${fmtDate(DATA_WINDOW.usageTo)}, when session ingestion stopped.`,
     })}
     <div class="page-body">
 
       <div>
         <h2 style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-secondary);margin-bottom:10px">Fleet at a glance</h2>
         <div class="grid grid-kpi">
-          ${kpiCard({ label: 'Devices across the fleet', value: fmtNum(DEVICES.length), sub: `across ${fmtNum(countryCount)} countries` })}
-          ${kpiCard({ label: 'Active right now', value: fmtNum(currentlyActiveDevices().length), sub: 'session in progress' })}
-          ${kpiCard({ label: 'Minutes played', value: fmtCompact(minutesLast30d), sub: 'last 30 days' })}
-          ${kpiCard({ label: 'Games in rotation', value: fmtNum(GAME_STATS.length), sub: 'across Pixie and Tovertafel' })}
-          ${kpiCard({ label: 'Avg. fleet uptime', value: fmtPct(avgUptime, 1), sub: 'last 4 weeks' })}
+          ${kpiCard({ label: 'Devices across the fleet', value: fmtNum(DEVICES.length), sub: `seen in 90 days, ${fmtNum(countryCount)} countries` })}
+          ${kpiCard({ label: 'Online right now', value: fmtNum(currentlyActiveDevices().length), sub: 'event in last 15 min' })}
+          ${kpiCard({ label: 'Minutes played', value: fmtCompact(minutesLast30d), sub: `30 days to ${fmtDate(DATA_WINDOW.usageTo)}` })}
+          ${kpiCard({ label: 'Games played', value: fmtNum(GAME_STATS.length), sub: 'incl. variants, last 30 days' })}
+          ${kpiCard({ label: 'Avg. fleet uptime', value: fmtPct(avgUptime, 1), sub: 'simulated - not in ES yet' })}
         </div>
       </div>
 
