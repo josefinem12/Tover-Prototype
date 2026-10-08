@@ -1,7 +1,7 @@
 import { esc, fmtNum, fmtCompact, fmtPct } from '../utils.js';
 import { renderPageHeader, availPill, kpiCard } from '../components.js';
 import { icon } from '../icons.js';
-import { TEAMS, DATA_STATUS, USAGE_TIMESERIES, GAME_STATS, DEVICES, EVENT_VOLUME, UPTIME_TREND, CUSTOMER_VALUE, currentlyActiveDevices } from '../data.js';
+import { TEAMS, DATA_STATUS, USAGE_TIMESERIES, GAME_STATS, DEVICES, ERRORS_BY_VERSION, UPTIME_TREND, CUSTOMER_VALUE, currentlyActiveDevices } from '../data.js';
 import { TABS as RD_TABS } from '../teams/rd.js';
 import { TABS as PRODUCT_TABS } from '../teams/product.js';
 import { TABS as COMMERCE_TABS } from '../teams/commerce.js';
@@ -15,7 +15,7 @@ const TEAM_CARDS = [
   { key: 'commerce', icon: 'briefcase', tabs: COMMERCE_TABS, stat: () => `${fmtNum(DEVICES.length)} devices across the fleet` },
   { key: 'customers', icon: 'home', tabs: CUSTOMERS_TABS, stat: () => `${fmtNum(CUSTOMER_VALUE.length)} care homes with a live report` },
   { key: 'ops', icon: 'wrench', tabs: OPS_TABS, stat: () => `${fmtNum(DEVICES.filter(d => d.technicalHealth === 'action').length)} devices need action` },
-  { key: 'software', icon: 'terminal', tabs: SOFTWARE_TABS, stat: () => `${fmtCompact(EVENT_VOLUME.reduce((s, r) => s + r.events, 0))} events / 30d` },
+  { key: 'software', icon: 'terminal', tabs: SOFTWARE_TABS, stat: () => `${fmtNum(ERRORS_BY_VERSION.reduce((s, r) => s + r.errors, 0))} errors / 30d` },
 ];
 
 const RULES = [

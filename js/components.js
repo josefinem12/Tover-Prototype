@@ -268,23 +268,6 @@ export function renderHeatmapMock(tiles, opts) {
 }
 
 // -------------------------------------------------------------------------
-// Roadmap row - Software's "requested metric → status" list
-// -------------------------------------------------------------------------
-
-export function renderRoadmapRow(item) {
-  return `
-    <div class="roadmap-row">
-      <div style="flex:1;min-width:0">
-        <div class="roadmap-title">${esc(item.metric)}</div>
-        <div class="roadmap-meta">${esc(item.note)}</div>
-        <div class="roadmap-teams">${item.teams.map(t => `<span class="audience-chip">${esc(TEAMS[t].label)}</span>`).join('')}</div>
-      </div>
-      <div style="flex:none">${availPill(item.status)}</div>
-    </div>
-  `;
-}
-
-// -------------------------------------------------------------------------
 // Generic sortable / searchable data table
 // A page renders `<div data-table-mount="ID"></div>` in its markup, then
 // calls mountDataTable(root, id, config) after inserting the HTML.

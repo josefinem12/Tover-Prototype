@@ -556,28 +556,3 @@ export const ERROR_TIMELINE = (() => {
   }
   return out;
 })();
-
-// -------------------------------------------------------------------------
-// Software - requested future metrics and current status (doc §8/§9)
-// -------------------------------------------------------------------------
-
-export const METRIC_ROADMAP = [
-  { metric: 'Explicit selection-source field (manual / shuffle / quick-pick)', teams: ['rd', 'product', 'commerce'], status: 'integration', note: 'Handpicked already exists as a signal; a dedicated field would sharpen manual-vs-shuffle reporting.' },
-  { metric: 'Game-card impression / catalogue navigation events', teams: ['rd'], status: 'new-tracking', note: 'Needed to know how many games were viewed before the one that got picked.' },
-  { metric: 'Interaction / motion coverage as a general online metric', teams: ['rd', 'product', 'software'], status: 'new-tracking', note: 'Motion was previously available but isn’t a standard tracked field today - Software already flagged storage cost from the earlier motion-data approach.' },
-  { metric: 'TPU hand-count exposed as an engagement signal', teams: ['rd', 'commerce'], status: 'definition', note: 'Technically possible for TPU-enabled games only, and must never be read as a count of people.' },
-  { metric: 'Player effort metric', teams: ['rd', 'product'], status: 'definition', note: 'No agreed definition of "effort" yet - needs a formula before it can leave concept stage.' },
-  { metric: 'Game category / use-type classification (active vs. ambient)', teams: ['rd', 'product'], status: 'definition', note: 'Needed before an active-vs-ambient comparison can be trusted as more than illustrative.' },
-  { metric: 'Pixie orientation extraction (ORIENTATION_CHANGED)', teams: ['rd'], status: 'integration', note: 'Already tracked on-device - needs extraction and visualisation, not new instrumentation.' },
-  { metric: 'Reliable local-time / geographic event time', teams: ['rd', 'product'], status: 'integration', note: 'Usage data exists; geographic and local-time reliability still needs work.' },
-  { metric: 'GeoIP device location', teams: ['product', 'commerce'], status: 'integration', note: 'Collection has started, but isn’t yet reliable enough to be more than an approximate map.' },
-  { metric: 'MQTT live event querying at fleet scale', teams: ['product'], status: 'integration', note: 'Technically supported direction; not yet queried reliably end-to-end for a live view.' },
-  { metric: 'Per-button menu / UI heatmap telemetry', teams: ['product', 'rd'], status: 'new-tracking', note: 'Broad screen paths can be reconstructed; exact button presses cannot yet.' },
-  { metric: 'Customer / fleet hierarchy', teams: ['product', 'commerce', 'ops'], status: 'integration', note: 'Needed for any aggregated, care-home-level, or fleet-level report.' },
-  { metric: 'Subscription / entitlement data', teams: ['commerce', 'rd'], status: 'integration', note: 'Needed to separate "popular" from "one of the few games actually unlocked".' },
-  { metric: 'PBIT hardware diagnostics', teams: ['product', 'ops'], status: 'planned', note: 'Planned feature - components are already identified, results are not yet flowing in.' },
-  { metric: 'Crash / freeze logs in Elasticsearch', teams: ['ops', 'software'], status: 'integration', note: 'Exists in Toverview today; not yet joined into the same pipeline as everything else here.' },
-  { metric: 'Hardware batch / distributor metadata', teams: ['ops'], status: 'integration', note: 'May live in Salesforce today - not yet joined to device telemetry for pattern analysis.' },
-  { metric: 'Remote-management action logging', teams: ['ops'], status: 'new-tracking', note: 'Needed to actually measure whether a pushed fix resolved the issue, not just that it was sent.' },
-  { metric: 'AI-generated explanations of graphs', teams: ['rd'], status: 'definition', note: 'Raised as an idea in the R&D session - doc note: wait until the underlying metrics are trustworthy first.' },
-];
